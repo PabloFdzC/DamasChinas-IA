@@ -1,0 +1,23 @@
+#lang racket
+
+(define frame (new frame% [label "Damas chinas"]))
+
+(define my-canvas%
+  (class canvas% ; The base class is canvas%
+    ; Define overriding method to handle mouse events
+    (define/override (on-event event)
+      (display "Canvas mouse"))
+    ; Define overriding method to handle keyboard events
+    (define/override (on-char event)
+      (display "Canvas keyboard"))
+    ; Call the superclass init, passing on all init args
+    (super-new)))
+ 
+(new my-canvas%
+     [parent frame]
+     [paint-callback
+      (lambda (canvas dc)
+        set-canvas-background "black")])
+ 
+
+(send frame show #t)
