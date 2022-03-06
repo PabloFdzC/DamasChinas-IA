@@ -217,8 +217,664 @@ mc es la instanciación del canvas
         ; (create-board) es el tablero, igual se puede sacar a que sea como una variable
         ; lo que importa realmete es que paint-board se llame desde aqui para que se
         ; imprima desde el inicio, mc es este mismo canvas
-        (paint-board (create-board) mc)
+        (paint-board (list-ref (check-possible-moves (create-board) "red") 0) mc)
         )]))
+
+
+
+(define (check-possible-moves board color)
+  (check-possible-moves-aux board color 0 (length board) '()))
+
+(define (check-possible-moves-aux board color pos max moves)
+  (if (= pos max)
+      moves
+      (check-possible-moves-aux
+       board color (add1 pos) max (check-possible-moves-aux2 board color pos 0 (length (list-ref board pos)) moves))))
+
+(define (check-possible-moves-aux2 board color pos pos2 max moves)
+  (if (= pos2 max)
+      moves
+      (if (equal? (send (list-ref (list-ref board pos) pos2) get-color) color)
+          (check-possible-moves-aux2 board color pos (add1 pos2) max
+                                  (check-possible-moves-pos board pos pos2 color moves))
+          (check-possible-moves-aux2 board color pos (add1 pos2) max moves))))
+
+(define (check-possible-moves-pos board pos pos2 color moves)
+  (remove-empty-lists
+  (append moves
+   (list(if (= pos 0)
+       '()
+        (check-move-up-left board pos pos2 color))
+   (if (= pos 0)
+       '()
+        (check-move-up-right board pos pos2 color))
+   (check-move-left board pos pos2 color)
+   (check-move-right board pos pos2 color)
+   (if (= pos 16)
+       '()
+        (check-move-down-left board pos pos2 color))
+   (if (= pos 16)
+       '()
+        (check-move-down-right board pos pos2 color)))
+   )))
+
+(define (remove-empty-lists lst)
+  (if (empty? lst)
+      '()
+      (if (empty? (first lst))
+          (remove-empty-lists (rest lst))
+          (append (list (first lst)) (remove-empty-lists (rest lst))))))
+
+(define (check-move-up-left board pos pos2 c)
+  (if (< (length (list-ref board (sub1 pos))) (length (list-ref board pos)))
+      (if (= pos2 0)
+          '()
+          (if (= (- (length (list-ref board pos)) (length (list-ref board (sub1 pos)))) 1)
+              (if ( equal? (send (list-ref (list-ref board (sub1 pos)) (sub1 pos2)) get-color) "white")
+                  (append (take board (sub1 pos))
+                          (list (append (take (list-ref board (sub1 pos)) (sub1 pos2)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (sub1 pos)) (sub1 pos2)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (sub1 pos)) (sub1 pos2)) get-pos-y)]))
+                                                                (drop (list-ref board (sub1 pos)) pos2)))
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (drop board (add1 pos)))
+                  (if (= pos 1) '() (check-move-up-left-jump board pos pos2 (sub1 pos)(sub1 pos2) c)))
+              (if (and (> pos2 4) (< pos2 9))
+                  (if ( equal? (send (list-ref (list-ref board (sub1 pos)) (- pos2 5)) get-color) "white")
+                      (append (take board (sub1 pos))
+                          (list (append (take (list-ref board (sub1 pos)) (- pos2 5)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (sub1 pos)) (- pos2 5)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (sub1 pos)) (- pos2 5)) get-pos-y)]))
+                                                                (drop (list-ref board (sub1 pos)) (- pos2 4))))
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (drop board (add1 pos)))
+                      (if (= pos 1) '() (check-move-up-left-jump board pos pos2 (sub1 pos)(- pos2 5) c)))
+                  '()
+                  )))
+      (if (= (- (length (list-ref board (sub1 pos))) (length (list-ref board pos))) 1)
+          (if ( equal? (send (list-ref (list-ref board (sub1 pos)) pos2) get-color) "white")
+                  (append (take board (sub1 pos))
+                          (list (append (take (list-ref board (sub1 pos)) pos2) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (sub1 pos)) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (sub1 pos)) pos2) get-pos-y)]))
+                                                                (drop (list-ref board (sub1 pos)) (add1 pos2))))
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (drop board (add1 pos)))
+                  (check-move-up-left-jump board pos pos2 (sub1 pos) pos2 c))
+          (if ( equal? (send (list-ref (list-ref board (sub1 pos)) (+ pos2 4)) get-color) "white")
+                      (append (take board (sub1 pos))
+                          (list (append (take (list-ref board (sub1 pos)) (+ pos2 4)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (sub1 pos)) (+ pos2 4)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (sub1 pos)) (+ pos2 4)) get-pos-y)]))
+                                                                (drop (list-ref board (sub1 pos)) (+ pos2 5))))
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (drop board (add1 pos)))
+                      (check-move-up-left-jump board pos pos2 (sub1 pos)(+ pos2 4) c)))))
+
+(define (check-move-up-left-jump board pos pos2 posUp posUp2 c)
+  (if (< (length (list-ref board (sub1 posUp))) (length (list-ref board posUp)))
+      (if (= posUp2 0)
+          '()
+          (if (= (- (length (list-ref board posUp)) (length (list-ref board (sub1 posUp)))) 1)
+              (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (sub1 posUp2)) get-color) "white")
+                  (append (take board (sub1 posUp))
+                          (list (append (take (list-ref board (sub1 posUp)) (sub1 posUp2)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) (sub1 posUp2)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) (sub1 posUp2)) get-pos-y)]))
+                                                                (drop (list-ref board (sub1 posUp)) posUp2)))
+                          (list (list-ref board posUp))
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (drop board (add1 pos)))
+                  '())
+              (if (and (> posUp2 4) (< posUp2 9))
+                  (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (- posUp2 5)) get-color) "white")
+                      (append (take board (sub1 pos))
+                          (list (append (take (list-ref board (sub1 posUp)) (- posUp2 5)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) (- posUp2 5)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) (- posUp2 5)) get-pos-y)]))
+                                                                (drop (list-ref board (sub1 posUp)) (- posUp2 4))))
+                          (list (list-ref board posUp))
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (drop board (add1 pos)))
+                      '())
+                  '()
+                  )))
+      (if (= (- (length (list-ref board (sub1 posUp))) (length (list-ref board posUp))) 1)
+          (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) posUp2) get-color) "white")
+                  (append (take board (sub1 pos))
+                          (list (append (take (list-ref board (sub1 posUp)) posUp2) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) posUp2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) posUp2) get-pos-y)]))
+                                                                (drop (list-ref board (sub1 posUp)) (add1 posUp2))))
+                          (list (list-ref board posUp))
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (drop board (add1 pos)))
+                  '())
+          (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 4)) get-color) "white")
+                      (append (take board (sub1 posUp))
+                          (list (append (take (list-ref board (sub1 posUp)) (+ posUp2 4)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 4)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 4)) get-pos-y)]))
+                                                                (drop (list-ref board (sub1 posUp)) (+ posUp2 5))))
+                          (list (list-ref board posUp))
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (drop board (add1 pos)))
+                      '()))))
+
+(define (check-move-up-right board pos pos2 c)
+  (if (< (length (list-ref board (sub1 pos))) (length (list-ref board pos)))
+      (if (= pos2 (- (length (list-ref board pos)) 1))
+          '()
+          (if (= (- (length (list-ref board pos)) (length (list-ref board (sub1 pos)))) 1)
+              (if ( equal? (send (list-ref (list-ref board (sub1 pos)) pos2) get-color) "white")
+                  (append (take board (sub1 pos))
+                          (list (append (take (list-ref board (sub1 pos)) pos2) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (sub1 pos)) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (sub1 pos)) pos2) get-pos-y)]))
+                                                                (drop (list-ref board (sub1 pos)) (add1 pos2))))
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (drop board (add1 pos)))
+                  (if (= pos 1) '() (check-move-up-right-jump board pos pos2 (sub1 pos) pos2 c)))
+              (if (and (> pos2 3) (< pos2 8))
+                  (if ( equal? (send (list-ref (list-ref board (sub1 pos)) (- pos2 4)) get-color) "white")
+                      (append (take board (sub1 pos))
+                          (list (append (take (list-ref board (sub1 pos)) (- pos2 4)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (sub1 pos)) (- pos2 4)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (sub1 pos)) (- pos2 4)) get-pos-y)]))
+                                                                (drop (list-ref board (sub1 pos)) (- pos2 3))))
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (drop board (add1 pos)))
+                      (if (= pos 1) '() (check-move-up-right-jump board pos pos2 (sub1 pos)(- pos2 4) c)))
+                  '()
+                  )))
+      (if (= (- (length (list-ref board (sub1 pos))) (length (list-ref board pos))) 1)
+          (if ( equal? (send (list-ref (list-ref board (sub1 pos)) (add1 pos2)) get-color) "white")
+                  (append (take board (sub1 pos))
+                          (list (append (take (list-ref board (sub1 pos)) (add1 pos2)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (sub1 pos)) (add1 pos2)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (sub1 pos)) (add1 pos2)) get-pos-y)]))
+                                                                (drop (list-ref board (sub1 pos)) (+ pos2 2))))
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (drop board (add1 pos)))
+                  (check-move-up-right-jump board pos pos2 (sub1 pos) (add1 pos2) c))
+          (if ( equal? (send (list-ref (list-ref board (sub1 pos)) (+ pos2 5)) get-color) "white")
+                      (append (take board (sub1 pos))
+                          (list (append (take (list-ref board (sub1 pos)) (+ pos2 5)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (sub1 pos)) (+ pos2 5)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (sub1 pos)) (+ pos2 5)) get-pos-y)]))
+                                                                (drop (list-ref board (sub1 pos)) (+ pos2 6))))
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (drop board (add1 pos)))
+                      (check-move-up-right-jump board pos pos2 (sub1 pos)(+ pos2 5) c)))))
+
+(define (check-move-up-right-jump board pos pos2 posUp posUp2 c)
+  (if (< (length (list-ref board (sub1 posUp))) (length (list-ref board posUp)))
+      (if (= posUp2 (- (length (list-ref board posUp)) 1))
+          '()
+          (if (= (- (length (list-ref board posUp)) (length (list-ref board (sub1 posUp)))) 1)
+              (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) posUp2) get-color) "white")
+                  (append (take board (sub1 posUp))
+                          (list (append (take (list-ref board (sub1 posUp)) posUp2) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) posUp2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) posUp2) get-pos-y)]))
+                                                                (drop (list-ref board (sub1 posUp)) (add1 posUp2))))
+                          (list (list-ref board posUp))
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (drop board (add1 pos)))
+                  '())
+              (if (and (> posUp2 3) (< posUp2 8))
+                  (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (- posUp2 4)) get-color) "white")
+                      (append (take board (sub1 pos))
+                          (list (append (take (list-ref board (sub1 posUp)) (- posUp2 4)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) (- posUp2 4)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) (- posUp2 4)) get-pos-y)]))
+                                                                (drop (list-ref board (sub1 posUp)) (- posUp2 3))))
+                          (list (list-ref board posUp))
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (drop board (add1 pos)))
+                      '())
+                  '()
+                  )))
+      (if (= (- (length (list-ref board (sub1 posUp))) (length (list-ref board posUp))) 1)
+          (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (add1 posUp2)) get-color) "white")
+                  (append (take board (sub1 pos))
+                          (list (append (take (list-ref board (sub1 posUp)) (add1 posUp2)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) (add1 posUp2)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) (add1 posUp2)) get-pos-y)]))
+                                                                (drop (list-ref board (sub1 posUp)) (+ posUp2 2))))
+                          (list (list-ref board posUp))
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (drop board (add1 pos)))
+                  '())
+          (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 5)) get-color) "white")
+                      (append (take board (sub1 posUp))
+                          (list (append (take (list-ref board (sub1 posUp)) (+ posUp2 5)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 5)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 5)) get-pos-y)]))
+                                                                (drop (list-ref board (sub1 posUp)) (+ posUp2 6))))
+                          (list (list-ref board posUp))
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (drop board (add1 pos)))
+                      '()))))
+
+(define (check-move-down-left board pos pos2 c)
+  (if (< (length (list-ref board (add1 pos))) (length (list-ref board pos)))
+      (if (= pos2 0)
+          '()
+          (if (= (- (length (list-ref board pos)) (length (list-ref board (add1 pos)))) 1)
+              (if ( equal? (send (list-ref (list-ref board (add1 pos)) (sub1 pos2)) get-color) "white")
+                  (append (take board pos)
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (list (append (take (list-ref board (add1 pos)) (sub1 pos2)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (add1 pos)) (sub1 pos2)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (add1 pos)) (sub1 pos2)) get-pos-y)]))
+                                                                (drop (list-ref board (add1 pos)) pos2)))
+                          (drop board (+ pos 2)))
+                  (if (= pos 15) '() (check-move-down-left-jump board pos pos2 (add1 pos)(sub1 pos2) c)))
+              (if (and (> pos2 4) (< pos2 9))
+                  (if ( equal? (send (list-ref (list-ref board (add1 pos)) (- pos2 5)) get-color) "white")
+                      (append (take board pos)
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (list (append (take (list-ref board (add1 pos)) (- pos2 5)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (add1 pos)) (- pos2 5)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (add1 pos)) (- pos2 5)) get-pos-y)]))
+                                                                (drop (list-ref board (add1 pos)) (- pos2 4))))
+                          (drop board (+ pos 2)))
+                      (if (= pos 15) '() (check-move-down-left-jump board pos pos2 (add1 pos)(- pos2 5) c)))
+                  '()
+                  )))
+      (if (= (- (length (list-ref board (add1 pos))) (length (list-ref board pos))) 1)
+          (if ( equal? (send (list-ref (list-ref board (add1 pos)) pos2) get-color) "white")
+                  (append (take board pos)
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (list (append (take (list-ref board (add1 pos)) pos2) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (add1 pos)) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (add1 pos)) pos2) get-pos-y)]))
+                                                                (drop (list-ref board (add1 pos)) (add1 pos2))))
+                          (drop board (+ pos 2)))
+                  (check-move-down-left-jump board pos pos2 (add1 pos) pos2 c))
+          (if ( equal? (send (list-ref (list-ref board (add1 pos)) (+ pos2 4)) get-color) "white")
+                      (append (take board pos)
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (list (append (take (list-ref board (add1 pos)) (+ pos2 4)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (add1 pos)) (+ pos2 4)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (add1 pos)) (+ pos2 4)) get-pos-y)]))
+                                                                (drop (list-ref board (add1 pos)) (+ pos2 5))))
+                          (drop board (+ pos 2)))
+                      (check-move-down-left-jump board pos pos2 (add1 pos)(+ pos2 4) c)))))
+
+(define (check-move-down-left-jump board pos pos2 posDown posDown2 c)
+  (if (< (length (list-ref board (add1 posDown))) (length (list-ref board posDown)))
+      (if (= posDown2 0)
+          '()
+          (if (= (- (length (list-ref board posDown)) (length (list-ref board (add1 posDown)))) 1)
+              (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (sub1 posDown2)) get-color) "white")
+                  (append (take board pos)
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (list (list-ref board posDown))
+                          (list (append (take (list-ref board (add1 posDown)) (sub1 posDown2)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (add1 posDown)) (sub1 posDown2)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (add1 posDown)) (sub1 posDown2)) get-pos-y)]))
+                                                                (drop (list-ref board (add1 posDown)) posDown2)))
+                          (drop board (+ posDown 2)))
+                  '())
+              (if (and (> posDown2 4) (< posDown2 9))
+                  (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (- posDown2 5)) get-color) "white")
+                      (append (take board pos)
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (list (list-ref board posDown))
+                          (list (append (take (list-ref board (add1 posDown)) (- posDown2 5)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (add1 posDown)) (- posDown2 5)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (add1 posDown)) (- posDown2 5)) get-pos-y)]))
+                                                                (drop (list-ref board (add1 posDown)) (- posDown2 4))))
+                          (drop board (+ posDown 2)))
+                      '())
+                  '()
+                  )))
+      (if (= (- (length (list-ref board (add1 posDown))) (length (list-ref board posDown))) 1)
+          (if ( equal? (send (list-ref (list-ref board (add1 posDown)) posDown2) get-color) "white")
+                  (append (take board pos)
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (list (list-ref board posDown))
+                          (list (append (take (list-ref board (add1 posDown)) posDown2) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (add1 posDown)) posDown2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (add1 posDown)) posDown2) get-pos-y)]))
+                                                                (drop (list-ref board (add1 posDown)) (add1 posDown2))))
+                          (drop board (+ posDown 2)))
+                  '())
+          (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 4)) get-color) "white")
+                      (append (take board pos)
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (list (list-ref board posDown))
+                          (list (append (take (list-ref board (add1 posDown)) (+ posDown2 4)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 4)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 4)) get-pos-y)]))
+                                                                (drop (list-ref board (add1 posDown)) (+ posDown2 5))))
+                          (drop board (+ posDown 2)))
+                      '()))))
+
+(define (check-move-down-right board pos pos2 c)
+  (if (< (length (list-ref board (add1 pos))) (length (list-ref board pos)))
+      (if (= pos2 (- (length (list-ref board pos)) 1))
+          '()
+          (if (= (- (length (list-ref board pos)) (length (list-ref board (add1 pos)))) 1)
+              (if ( equal? (send (list-ref (list-ref board (add1 pos)) pos2) get-color) "white")
+                  (append (take board pos)
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (list (append (take (list-ref board (add1 pos)) pos2) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (add1 pos)) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (add1 pos)) pos2) get-pos-y)]))
+                                                                (drop (list-ref board (add1 pos)) (add1 pos2))))
+                          (drop board (+ pos 2)))
+                  (if (= pos 15) '() (check-move-down-right-jump board pos pos2 (add1 pos) pos2 c)))
+              (if (and (> pos2 3) (< pos2 8))
+                  (if ( equal? (send (list-ref (list-ref board (add1 pos)) (- pos2 4)) get-color) "white")
+                      (append (take board pos)
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (list (append (take (list-ref board (add1 pos)) (- pos2 4)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (add1 pos)) (- pos2 4)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (add1 pos)) (- pos2 4)) get-pos-y)]))
+                                                                (drop (list-ref board (add1 pos)) (- pos2 3))))
+                          (drop board (+ pos 2)))
+                      (if (= pos 15) '() (check-move-down-right-jump board pos pos2 (add1 pos)(- pos2 4) c)))
+                  '()
+                  )))
+      (if (= (- (length (list-ref board (add1 pos))) (length (list-ref board pos))) 1)
+          (if ( equal? (send (list-ref (list-ref board (add1 pos)) (add1 pos2)) get-color) "white")
+                  (append (take board pos)
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (list (append (take (list-ref board (add1 pos)) (add1 pos2)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (add1 pos)) (add1 pos2)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (add1 pos)) (add1 pos2)) get-pos-y)]))
+                                                                (drop (list-ref board (add1 pos)) (+ pos2 2))))
+                          (drop board (+ pos 2)))
+                  (check-move-down-right-jump board pos pos2 (add1 pos) (add1 pos2) c))
+          (if ( equal? (send (list-ref (list-ref board (add1 pos)) (+ pos2 5)) get-color) "white")
+                      (append (take board pos)
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (list (append (take (list-ref board (add1 pos)) (+ pos2 5)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (add1 pos)) (+ pos2 5)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (add1 pos)) (+ pos2 5)) get-pos-y)]))
+                                                                (drop (list-ref board (add1 pos)) (+ pos2 6))))
+                          (drop board (+ pos 2)))
+                      (check-move-down-right-jump board pos pos2 (add1 pos)(+ pos2 5) c)))))
+
+(define (check-move-down-right-jump board pos pos2 posDown posDown2 c)
+  (if (< (length (list-ref board (add1 posDown))) (length (list-ref board posDown)))
+      (if (= posDown2 (- (length (list-ref board posDown)) 1))
+          '()
+          (if (= (- (length (list-ref board posDown)) (length (list-ref board (add1 posDown)))) 1)
+              (if ( equal? (send (list-ref (list-ref board (add1 posDown)) posDown2) get-color) "white")
+                  (append (take board pos)
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (list (list-ref board posDown))
+                          (list (append (take (list-ref board (add1 posDown)) posDown2) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (add1 posDown)) posDown2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (add1 posDown)) posDown2) get-pos-y)]))
+                                                                (drop (list-ref board (add1 posDown)) (add1 posDown2))))
+                          (drop board (+ posDown 2)))
+                  '())
+              (if (and (> posDown2 3) (< posDown2 8))
+                  (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (- posDown2 4)) get-color) "white")
+                      (append (take board pos)
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (list (list-ref board posDown))
+                          (list (append (take (list-ref board (add1 posDown)) (- posDown2 4)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (add1 posDown)) (- posDown2 4)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (add1 posDown)) (- posDown2 4)) get-pos-y)]))
+                                                                (drop (list-ref board (add1 posDown)) (- posDown2 3))))
+                          (drop board (+ posDown 2)))
+                      '())
+                  '()
+                  )))
+      (if (= (- (length (list-ref board (add1 posDown))) (length (list-ref board posDown))) 1)
+          (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (add1 posDown2)) get-color) "white")
+                  (append (take board pos)
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (list (list-ref board posDown))
+                          (list (append (take (list-ref board (add1 posDown)) (add1 posDown2)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (add1 posDown)) (add1 posDown2)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (add1 posDown)) (add1 posDown2)) get-pos-y)]))
+                                                                (drop (list-ref board (add1 posDown)) (+ posDown2 2))))
+                          (drop board (+ posDown 2)))
+                  '())
+          (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 5)) get-color) "white")
+                      (append (take board pos)
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                [color "white"]
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                (drop (list-ref board pos) (add1 pos2))))
+                          (list (list-ref board posDown))
+                          (list (append (take (list-ref board (add1 posDown)) (+ posDown2 5)) (list (new cCheckersBox%
+                                                                [color c]
+                                                                [posX (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 5)) get-pos-x)]
+                                                                [posY (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 5)) get-pos-y)]))
+                                                                (drop (list-ref board (add1 posDown)) (+ posDown2 6))))
+                          (drop board (+ posDown 2)))
+                      '()))))
+
+(define (check-move-left board pos pos2 c)
+  (if (= pos2 0)
+      '()
+      (if ( equal? (send (list-ref (list-ref board pos) (sub1 pos2)) get-color) "white")
+          (append (take board pos)
+                  (list (append (take (list-ref board pos) (sub1 pos2)) (list (new cCheckersBox%
+                                                                                     [color c]
+                                                                                     [posX (send (list-ref (list-ref board pos) (sub1 pos2)) get-pos-x)]
+                                                                                     [posY (send (list-ref (list-ref board pos) (sub1 pos2)) get-pos-y)])
+                                                                                (new cCheckersBox%
+                                                                                     [color "white"]
+                                                                                     [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                                     [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                (drop (list-ref board pos) (add1 pos2))))
+                  (drop board (add1 pos)))
+          (if (= pos2 1)
+              '()
+              (if ( equal? (send (list-ref (list-ref board pos) (- pos2 2)) get-color) "white")
+                  (append (take board pos)
+                          (list (append (take (list-ref board pos) (- pos2 2)) (list (new cCheckersBox%
+                                                                                     [color c]
+                                                                                     [posX (send (list-ref (list-ref board pos) (- pos2 2)) get-pos-x)]
+                                                                                     [posY (send (list-ref (list-ref board pos) (- pos2 2)) get-pos-y)])
+                                                                                (list-ref (list-ref board pos) (sub1 pos2))
+                                                                                (new cCheckersBox%
+                                                                                     [color "white"]
+                                                                                     [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                                     [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                (drop (list-ref board pos) (add1 pos2))))
+                  (drop board (add1 pos)))
+                  '())))))
+
+(define (check-move-right board pos pos2 c)
+  (if (= pos2 (- (length (list-ref board pos)) 1))
+      '()
+      (if ( equal? (send (list-ref (list-ref board pos) (add1 pos2)) get-color) "white")
+          (append (take board pos)
+                  (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                                     [color "white"]
+                                                                                     [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                                     [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)])
+                                                                                (new cCheckersBox%
+                                                                                     [color c]
+                                                                                     [posX (send (list-ref (list-ref board pos) (add1 pos2)) get-pos-x)]
+                                                                                     [posY (send (list-ref (list-ref board pos) (add1 pos2)) get-pos-y)]))
+                                (drop (list-ref board pos) (+ pos2 2))))
+                  (drop board (add1 pos)))
+          (if (= pos2 (- (length (list-ref board pos)) 2))
+              '()
+              (if ( equal? (send (list-ref (list-ref board pos) (+ pos2 2)) get-color) "white")
+                  (append (take board pos)
+                          (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
+                                                                                     [color "white"]
+                                                                                     [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
+                                                                                     [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)])
+                                                                                (list-ref (list-ref board pos) (add1 pos2))
+                                                                                (new cCheckersBox%
+                                                                                     [color c]
+                                                                                     [posX (send (list-ref (list-ref board pos) (+ pos2 2)) get-pos-x)]
+                                                                                     [posY (send (list-ref (list-ref board pos) (+ pos2 2)) get-pos-y)]))
+                                (drop (list-ref board pos) (+ pos2 3))))
+                  (drop board (add1 pos)))
+                  '())))))
+
+(define lst (list 1 2 3 4 5))
+
 
 
 ; Muestra la ventana
