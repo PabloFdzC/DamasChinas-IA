@@ -1,132 +1,7 @@
 #lang racket
 (require racket/gui/base)
-#|
-Definición del objeto que representa las casillas
-del tablero.
-Parametros:
-- color: que diferencia los espacios
-  libres de los que son piezas en el tablero
-- posX: posición en X de la casilla en el canvas
-- posY: posición en Y de la casilla en el canvas
-- circle: que es un objeto dc-path que permite
-  dibujar la casilla en el canvas
-|#
-(define cCheckersBox%
-  (class object%
-    (super-new)
-    (init-field color
-                posX
-                posY
-                [circle (new dc-path%)]
-                )
-    ; Los siguientes 5 métodos son getters y setters
-    (define/public (get-color) color)
-    (define/public (get-pos-x) posX)
-    (define/public (get-pos-y) posY)
-    (define/public (get-circle) circle)
-    (define/public (set-color c)
-      (set! color c))
-    #|
-    draw-circle se usa para dibujar la casilla en un canvas
-    dado.
-    Parámetro:
-    - mc: el canvas en el que se dibuja el circulo
-    Salida:
-    - Ninguna
-    |#
-    (define/public (draw-circle mc)
-      (send (send mc get-dc) set-brush color 'solid)
-      (send circle arc posX posY 20 20 0 (* 2 pi))
-      (send (send mc get-dc) draw-path circle)
-      )
-    ))
-#|
-create-board crea una lista que representa el tablero
-de juego
-Parámetros:
-- Ninguno
-Salida:
-- Devuelve una lista de listas de objetos cCheckersBox
-Ejemplo:
-(create-board)
-Devuelve:
-(list
- (list (object:cCheckersBox% ...))
- (list (object:cCheckersBox% ...) (object:cCheckersBox% ...))
-...)
-|#
-(define (create-board)
-  (append (create-board-aux2 '() 0 3 "green" 150 10 21 22 #f)
-          (reverse (create-board-aux2 '() 8 12 "white" 70 182 21 22 #t))
-          (create-board-aux2 '() 9 12 "white" 60 204 21 22 #f)
-          (reverse (create-board-aux2 '() 0 3 "red" 150 356 21 22 #t))
-          ))
-
-#|
-create-board-aux mete en una lista tantos objetos cCheckersBox
-como le sean indicados por los parámetros curr y end, estos
-objetos los mete en la lista que se pasó por el parámetro lst
-Parámetros:
-- lst: lista donde se meten los objetos
-- curr: sirve para contar los objetos que hemos metido
-- end: determina cuando se debe detener el proceso
-- c: color que debe llevar la casilla
-- x: posición x de la casilla en el canvas
-- y: posición y de la casilla en el canvas
-- spaceX: cantidad que modifica la distancia entre cada
-  casilla para que queden separadas en el eje x
-Salida:
-- Devuelve una lista objetos cCheckersBox
-Ejemplo:
-(create-board-aux '() 0 3 "green" 10 10 20)
-Devuelve:
-(list (object:cCheckersBox% ...) (object:cCheckersBox% ...) (object:cCheckersBox% ...) (object:cCheckersBox% ...))
-|#
-(define (create-board-aux lst curr end c x y spaceX)
-  (if (> curr end)
-      lst
-      (create-board-aux
-       (append lst (list (new cCheckersBox%
-                        [color c]
-                        [posX x]
-                        [posY y])))
-       (add1 curr) end c (+ x spaceX) y spaceX)))
-
-#|
-create-board-aux2 mete en una lista las listas de objetos
-generadas por la función create-board-aux, básicamente
-es la que se encarga de que los circulos que representan
-las casillas queden ordenados en forma de triángulos
-Parámetros:
-- lst: lista donde se meten los objetos
-- curr: sirve para contar los objetos que hemos metido
-- end: determina cuando se debe detener el proceso
-- c: color que debe llevar la casilla
-- x: posición x de la casilla en el canvas
-- y: posición y de la casilla en el canvas
-- spaceX: cantidad que modifica la distancia entre cada
-  casilla para que queden separadas en el eje x
-- spaceY: cantidad que modifica la distancia entre cada
-  casilla para que queden separadas en el eje y
-- rev: indica si se va a acomodar el triángulo generado
-  en reverso (en lugar de apuntar hacia arriba apunta hacia
-  abajo)
-Salida:
-- Devuelve una lista de listas con objetos cCheckersBox
-Ejemplo:
-(create-board-aux2 '() 0 3 "green" 150 10 21 22 #f)
-Devuelve:
-(list
- (list (object:cCheckersBox% ...))
- (list (object:cCheckersBox% ...) (object:cCheckersBox% ...))
- (list (object:cCheckersBox% ...) (object:cCheckersBox% ...) (object:cCheckersBox% ...))
- (list (object:cCheckersBox% ...) (object:cCheckersBox% ...) (object:cCheckersBox% ...) (object:cCheckersBox% ...)))
-|#
-(define (create-board-aux2 lst curr end c x y spaceX spaceY rev)
-  (if (> curr end)
-      lst
-      (create-board-aux2 (append lst (list (create-board-aux '() 0 curr c x y spaceX)))
-                         (add1 curr) end c (- x (/ (sub1 spaceY) 2)) (if rev (- y spaceX) (+ y spaceY)) spaceX spaceY rev)))
+(require "board.rkt")
+(require "cCheckersBox.rkt")
 
 #|
 paint-board se encarga de recorrer la lista de listas
@@ -140,31 +15,36 @@ Salida:
 - Ninguna
 |#
 (define (paint-board board mc)
+  #|
+  paint-board-aux dibuja el tablero de juego en un canvas.
+  Esta función es llamada por paint-board
+  dado
+  Parámetros:
+  - board: recibe una hilera del tablero (lista de objetos
+    cCheckersBox)
+  - mc: el canvas donde se dibujará el tablero
+  Salida:
+  - Ninguna
+  |#
+  (define (paint-board-aux board mc)
+    (if (not (empty? board))
+        ((lambda (board mc)
+           (send (first board) draw-circle mc)
+           (paint-board-aux (rest board) mc))
+         board mc)
+        (void)
+        )
+    )
+  
   (if (not (empty? board))
       ((lambda (board mc)
          (paint-board-aux (first board) mc)
          (paint-board (rest board) mc))
        board mc)
-      (void)))
+      (void)
+      )
+  )
 
-#|
-paint-board-aux dibuja el tablero de juego en un canvas.
-Esta función es llamada por paint-board
-dado
-Parámetros:
-- board: recibe una hilera del tablero (lista de objetos
-  cCheckersBox)
-- mc: el canvas donde se dibujará el tablero
-Salida:
-- Ninguna
-|#
-(define (paint-board-aux board mc)
-  (if (not (empty? board))
-      ((lambda (board mc)
-         (send (first board) draw-circle mc)
-         (paint-board-aux (rest board) mc))
-       board mc)
-      (void)))
 
 #|
 Crea la ventana del programa, frame se puede
@@ -175,6 +55,10 @@ objeto que muestra la ventana
                    [label "Damas chinas"]
                    [width 400]
                    [height 400]))
+#|
+  Inicializa un objeto board%
+|#
+(define game (new board% [turn #t]))
 
 #|
 my-canvas% es una clase que hereda de la
@@ -185,24 +69,21 @@ poder tener acceso a la interación con el mouse
   (class canvas%
     (super-new)
     (inherit/super get-dc)
-    ; Método para interactuar con el mouse (ahorita solo pinta un punto en el canvas)
+    #|
+      Método para interactuar con el mouse, captura la posición del 
+      click izquierdo en el canvas y selecciona una de las casillas
+      del tablero en caso de que corresponda
+      Entradas:
+      - event: objeto on-event
+      Salida:
+      - Ninguna
+    |# 
     (define/override (on-event event)
       (if (equal? (send event get-event-type) 'left-down)
-          ;(printf "Hello ~a\n" (is-a? (send this get-dc) dc<%>))
-          (let ([a (new dc-path%)])
-            (send a arc (send event get-x) (send event get-y) 10 10 0 (* 2 pi))
-            (send (send this get-dc) draw-path a )
-            (display "----------------------\n")
-            (display (call-with-values (lambda ()(send a get-datum)) list))
-            (display "----------------------\n")
-            )
-          #|(display (string-append
-                    "("
-                    (number->string (send event get-x))
-                    ", "
-                    (number->string (send event get-x)) ") "))|#
-          void))
+          (send game select-box (send event get-x) (send event get-y) mc (if (send game get-turn) "red" "green"))
+          (void)))
     ))
+
 
 #|
 mc es la instanciación del canvas
@@ -213,13 +94,10 @@ mc es la instanciación del canvas
       (lambda (canvas dc)
         (send dc set-background "black")
         (send dc clear)
-        ; Aqui es donde se manda a llamar para que se pinte el tablero
-        ; (create-board) es el tablero, igual se puede sacar a que sea como una variable
-        ; lo que importa realmete es que paint-board se llame desde aqui para que se
-        ; imprima desde el inicio, mc es este mismo canvas
-        (paint-board (list-ref (check-possible-moves (create-board) "red") 0) mc)
+        (send game new-game) ; Se crea un nuevo juego
+        (paint-board (send game get-current-game) mc) ; Se pinta el tablero inicial
+        ;(paint-board (list-ref (check-possible-moves (send game get-current-game) "red") 0) mc)
         )]))
-
 
 
 (define (check-possible-moves board color)
@@ -274,13 +152,13 @@ mc es la instanciación del canvas
                   (append (take board (sub1 pos))
                           (list (append (take (list-ref board (sub1 pos)) (sub1 pos2)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (sub1 pos)) (sub1 pos2)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (sub1 pos)) (sub1 pos2)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (sub1 pos)) (sub1 pos2)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (sub1 pos)) (sub1 pos2)) get-posY)]))
                                                                 (drop (list-ref board (sub1 pos)) pos2)))
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
                   (if (= pos 1) '() (check-move-up-left-jump board pos pos2 (sub1 pos)(sub1 pos2) c)))
@@ -289,13 +167,13 @@ mc es la instanciación del canvas
                       (append (take board (sub1 pos))
                           (list (append (take (list-ref board (sub1 pos)) (- pos2 5)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (sub1 pos)) (- pos2 5)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (sub1 pos)) (- pos2 5)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (sub1 pos)) (- pos2 5)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (sub1 pos)) (- pos2 5)) get-posY)]))
                                                                 (drop (list-ref board (sub1 pos)) (- pos2 4))))
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
                       (if (= pos 1) '() (check-move-up-left-jump board pos pos2 (sub1 pos)(- pos2 5) c)))
@@ -306,13 +184,13 @@ mc es la instanciación del canvas
                   (append (take board (sub1 pos))
                           (list (append (take (list-ref board (sub1 pos)) pos2) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (sub1 pos)) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (sub1 pos)) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (sub1 pos)) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (sub1 pos)) pos2) get-posY)]))
                                                                 (drop (list-ref board (sub1 pos)) (add1 pos2))))
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
                   (check-move-up-left-jump board pos pos2 (sub1 pos) pos2 c))
@@ -320,13 +198,13 @@ mc es la instanciación del canvas
                       (append (take board (sub1 pos))
                           (list (append (take (list-ref board (sub1 pos)) (+ pos2 4)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (sub1 pos)) (+ pos2 4)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (sub1 pos)) (+ pos2 4)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (sub1 pos)) (+ pos2 4)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (sub1 pos)) (+ pos2 4)) get-posY)]))
                                                                 (drop (list-ref board (sub1 pos)) (+ pos2 5))))
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
                       (check-move-up-left-jump board pos pos2 (sub1 pos)(+ pos2 4) c)))))
@@ -340,14 +218,14 @@ mc es la instanciación del canvas
                   (append (take board (sub1 posUp))
                           (list (append (take (list-ref board (sub1 posUp)) (sub1 posUp2)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) (sub1 posUp2)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) (sub1 posUp2)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) (sub1 posUp2)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) (sub1 posUp2)) get-posY)]))
                                                                 (drop (list-ref board (sub1 posUp)) posUp2)))
                           (list (list-ref board posUp))
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
                   '())
@@ -356,14 +234,14 @@ mc es la instanciación del canvas
                       (append (take board (sub1 pos))
                           (list (append (take (list-ref board (sub1 posUp)) (- posUp2 5)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) (- posUp2 5)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) (- posUp2 5)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) (- posUp2 5)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) (- posUp2 5)) get-posY)]))
                                                                 (drop (list-ref board (sub1 posUp)) (- posUp2 4))))
                           (list (list-ref board posUp))
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
                       '())
@@ -374,14 +252,14 @@ mc es la instanciación del canvas
                   (append (take board (sub1 pos))
                           (list (append (take (list-ref board (sub1 posUp)) posUp2) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) posUp2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) posUp2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) posUp2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) posUp2) get-posY)]))
                                                                 (drop (list-ref board (sub1 posUp)) (add1 posUp2))))
                           (list (list-ref board posUp))
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
                   '())
@@ -389,14 +267,14 @@ mc es la instanciación del canvas
                       (append (take board (sub1 posUp))
                           (list (append (take (list-ref board (sub1 posUp)) (+ posUp2 4)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 4)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 4)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 4)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 4)) get-posY)]))
                                                                 (drop (list-ref board (sub1 posUp)) (+ posUp2 5))))
                           (list (list-ref board posUp))
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
                       '()))))
@@ -410,13 +288,13 @@ mc es la instanciación del canvas
                   (append (take board (sub1 pos))
                           (list (append (take (list-ref board (sub1 pos)) pos2) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (sub1 pos)) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (sub1 pos)) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (sub1 pos)) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (sub1 pos)) pos2) get-posY)]))
                                                                 (drop (list-ref board (sub1 pos)) (add1 pos2))))
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
                   (if (= pos 1) '() (check-move-up-right-jump board pos pos2 (sub1 pos) pos2 c)))
@@ -425,13 +303,13 @@ mc es la instanciación del canvas
                       (append (take board (sub1 pos))
                           (list (append (take (list-ref board (sub1 pos)) (- pos2 4)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (sub1 pos)) (- pos2 4)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (sub1 pos)) (- pos2 4)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (sub1 pos)) (- pos2 4)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (sub1 pos)) (- pos2 4)) get-posY)]))
                                                                 (drop (list-ref board (sub1 pos)) (- pos2 3))))
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
                       (if (= pos 1) '() (check-move-up-right-jump board pos pos2 (sub1 pos)(- pos2 4) c)))
@@ -442,13 +320,13 @@ mc es la instanciación del canvas
                   (append (take board (sub1 pos))
                           (list (append (take (list-ref board (sub1 pos)) (add1 pos2)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (sub1 pos)) (add1 pos2)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (sub1 pos)) (add1 pos2)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (sub1 pos)) (add1 pos2)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (sub1 pos)) (add1 pos2)) get-posY)]))
                                                                 (drop (list-ref board (sub1 pos)) (+ pos2 2))))
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
                   (check-move-up-right-jump board pos pos2 (sub1 pos) (add1 pos2) c))
@@ -456,13 +334,13 @@ mc es la instanciación del canvas
                       (append (take board (sub1 pos))
                           (list (append (take (list-ref board (sub1 pos)) (+ pos2 5)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (sub1 pos)) (+ pos2 5)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (sub1 pos)) (+ pos2 5)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (sub1 pos)) (+ pos2 5)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (sub1 pos)) (+ pos2 5)) get-posY)]))
                                                                 (drop (list-ref board (sub1 pos)) (+ pos2 6))))
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
                       (check-move-up-right-jump board pos pos2 (sub1 pos)(+ pos2 5) c)))))
@@ -476,14 +354,14 @@ mc es la instanciación del canvas
                   (append (take board (sub1 posUp))
                           (list (append (take (list-ref board (sub1 posUp)) posUp2) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) posUp2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) posUp2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) posUp2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) posUp2) get-posY)]))
                                                                 (drop (list-ref board (sub1 posUp)) (add1 posUp2))))
                           (list (list-ref board posUp))
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
                   '())
@@ -492,14 +370,14 @@ mc es la instanciación del canvas
                       (append (take board (sub1 pos))
                           (list (append (take (list-ref board (sub1 posUp)) (- posUp2 4)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) (- posUp2 4)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) (- posUp2 4)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) (- posUp2 4)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) (- posUp2 4)) get-posY)]))
                                                                 (drop (list-ref board (sub1 posUp)) (- posUp2 3))))
                           (list (list-ref board posUp))
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
                       '())
@@ -510,14 +388,14 @@ mc es la instanciación del canvas
                   (append (take board (sub1 pos))
                           (list (append (take (list-ref board (sub1 posUp)) (add1 posUp2)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) (add1 posUp2)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) (add1 posUp2)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) (add1 posUp2)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) (add1 posUp2)) get-posY)]))
                                                                 (drop (list-ref board (sub1 posUp)) (+ posUp2 2))))
                           (list (list-ref board posUp))
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
                   '())
@@ -525,14 +403,14 @@ mc es la instanciación del canvas
                       (append (take board (sub1 posUp))
                           (list (append (take (list-ref board (sub1 posUp)) (+ posUp2 5)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 5)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 5)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 5)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 5)) get-posY)]))
                                                                 (drop (list-ref board (sub1 posUp)) (+ posUp2 6))))
                           (list (list-ref board posUp))
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
                       '()))))
@@ -546,13 +424,13 @@ mc es la instanciación del canvas
                   (append (take board pos)
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (list (append (take (list-ref board (add1 pos)) (sub1 pos2)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (add1 pos)) (sub1 pos2)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (add1 pos)) (sub1 pos2)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (add1 pos)) (sub1 pos2)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (add1 pos)) (sub1 pos2)) get-posY)]))
                                                                 (drop (list-ref board (add1 pos)) pos2)))
                           (drop board (+ pos 2)))
                   (if (= pos 15) '() (check-move-down-left-jump board pos pos2 (add1 pos)(sub1 pos2) c)))
@@ -561,13 +439,13 @@ mc es la instanciación del canvas
                       (append (take board pos)
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (list (append (take (list-ref board (add1 pos)) (- pos2 5)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (add1 pos)) (- pos2 5)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (add1 pos)) (- pos2 5)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (add1 pos)) (- pos2 5)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (add1 pos)) (- pos2 5)) get-posY)]))
                                                                 (drop (list-ref board (add1 pos)) (- pos2 4))))
                           (drop board (+ pos 2)))
                       (if (= pos 15) '() (check-move-down-left-jump board pos pos2 (add1 pos)(- pos2 5) c)))
@@ -578,13 +456,13 @@ mc es la instanciación del canvas
                   (append (take board pos)
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (list (append (take (list-ref board (add1 pos)) pos2) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (add1 pos)) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (add1 pos)) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (add1 pos)) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (add1 pos)) pos2) get-posY)]))
                                                                 (drop (list-ref board (add1 pos)) (add1 pos2))))
                           (drop board (+ pos 2)))
                   (check-move-down-left-jump board pos pos2 (add1 pos) pos2 c))
@@ -592,13 +470,13 @@ mc es la instanciación del canvas
                       (append (take board pos)
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (list (append (take (list-ref board (add1 pos)) (+ pos2 4)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (add1 pos)) (+ pos2 4)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (add1 pos)) (+ pos2 4)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (add1 pos)) (+ pos2 4)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (add1 pos)) (+ pos2 4)) get-posY)]))
                                                                 (drop (list-ref board (add1 pos)) (+ pos2 5))))
                           (drop board (+ pos 2)))
                       (check-move-down-left-jump board pos pos2 (add1 pos)(+ pos2 4) c)))))
@@ -612,14 +490,14 @@ mc es la instanciación del canvas
                   (append (take board pos)
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (list (list-ref board posDown))
                           (list (append (take (list-ref board (add1 posDown)) (sub1 posDown2)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (add1 posDown)) (sub1 posDown2)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (add1 posDown)) (sub1 posDown2)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (add1 posDown)) (sub1 posDown2)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (add1 posDown)) (sub1 posDown2)) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) posDown2)))
                           (drop board (+ posDown 2)))
                   '())
@@ -628,14 +506,14 @@ mc es la instanciación del canvas
                       (append (take board pos)
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (list (list-ref board posDown))
                           (list (append (take (list-ref board (add1 posDown)) (- posDown2 5)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (add1 posDown)) (- posDown2 5)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (add1 posDown)) (- posDown2 5)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (add1 posDown)) (- posDown2 5)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (add1 posDown)) (- posDown2 5)) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) (- posDown2 4))))
                           (drop board (+ posDown 2)))
                       '())
@@ -646,14 +524,14 @@ mc es la instanciación del canvas
                   (append (take board pos)
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (list (list-ref board posDown))
                           (list (append (take (list-ref board (add1 posDown)) posDown2) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (add1 posDown)) posDown2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (add1 posDown)) posDown2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (add1 posDown)) posDown2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (add1 posDown)) posDown2) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) (add1 posDown2))))
                           (drop board (+ posDown 2)))
                   '())
@@ -661,14 +539,14 @@ mc es la instanciación del canvas
                       (append (take board pos)
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (list (list-ref board posDown))
                           (list (append (take (list-ref board (add1 posDown)) (+ posDown2 4)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 4)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 4)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 4)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 4)) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) (+ posDown2 5))))
                           (drop board (+ posDown 2)))
                       '()))))
@@ -682,13 +560,13 @@ mc es la instanciación del canvas
                   (append (take board pos)
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (list (append (take (list-ref board (add1 pos)) pos2) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (add1 pos)) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (add1 pos)) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (add1 pos)) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (add1 pos)) pos2) get-posY)]))
                                                                 (drop (list-ref board (add1 pos)) (add1 pos2))))
                           (drop board (+ pos 2)))
                   (if (= pos 15) '() (check-move-down-right-jump board pos pos2 (add1 pos) pos2 c)))
@@ -697,13 +575,13 @@ mc es la instanciación del canvas
                       (append (take board pos)
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (list (append (take (list-ref board (add1 pos)) (- pos2 4)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (add1 pos)) (- pos2 4)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (add1 pos)) (- pos2 4)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (add1 pos)) (- pos2 4)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (add1 pos)) (- pos2 4)) get-posY)]))
                                                                 (drop (list-ref board (add1 pos)) (- pos2 3))))
                           (drop board (+ pos 2)))
                       (if (= pos 15) '() (check-move-down-right-jump board pos pos2 (add1 pos)(- pos2 4) c)))
@@ -714,13 +592,13 @@ mc es la instanciación del canvas
                   (append (take board pos)
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (list (append (take (list-ref board (add1 pos)) (add1 pos2)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (add1 pos)) (add1 pos2)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (add1 pos)) (add1 pos2)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (add1 pos)) (add1 pos2)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (add1 pos)) (add1 pos2)) get-posY)]))
                                                                 (drop (list-ref board (add1 pos)) (+ pos2 2))))
                           (drop board (+ pos 2)))
                   (check-move-down-right-jump board pos pos2 (add1 pos) (add1 pos2) c))
@@ -728,13 +606,13 @@ mc es la instanciación del canvas
                       (append (take board pos)
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (list (append (take (list-ref board (add1 pos)) (+ pos2 5)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (add1 pos)) (+ pos2 5)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (add1 pos)) (+ pos2 5)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (add1 pos)) (+ pos2 5)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (add1 pos)) (+ pos2 5)) get-posY)]))
                                                                 (drop (list-ref board (add1 pos)) (+ pos2 6))))
                           (drop board (+ pos 2)))
                       (check-move-down-right-jump board pos pos2 (add1 pos)(+ pos2 5) c)))))
@@ -748,14 +626,14 @@ mc es la instanciación del canvas
                   (append (take board pos)
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (list (list-ref board posDown))
                           (list (append (take (list-ref board (add1 posDown)) posDown2) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (add1 posDown)) posDown2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (add1 posDown)) posDown2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (add1 posDown)) posDown2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (add1 posDown)) posDown2) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) (add1 posDown2))))
                           (drop board (+ posDown 2)))
                   '())
@@ -764,14 +642,14 @@ mc es la instanciación del canvas
                       (append (take board pos)
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (list (list-ref board posDown))
                           (list (append (take (list-ref board (add1 posDown)) (- posDown2 4)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (add1 posDown)) (- posDown2 4)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (add1 posDown)) (- posDown2 4)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (add1 posDown)) (- posDown2 4)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (add1 posDown)) (- posDown2 4)) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) (- posDown2 3))))
                           (drop board (+ posDown 2)))
                       '())
@@ -782,14 +660,14 @@ mc es la instanciación del canvas
                   (append (take board pos)
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (list (list-ref board posDown))
                           (list (append (take (list-ref board (add1 posDown)) (add1 posDown2)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (add1 posDown)) (add1 posDown2)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (add1 posDown)) (add1 posDown2)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (add1 posDown)) (add1 posDown2)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (add1 posDown)) (add1 posDown2)) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) (+ posDown2 2))))
                           (drop board (+ posDown 2)))
                   '())
@@ -797,14 +675,14 @@ mc es la instanciación del canvas
                       (append (take board pos)
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
-                                                                [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (list (list-ref board posDown))
                           (list (append (take (list-ref board (add1 posDown)) (+ posDown2 5)) (list (new cCheckersBox%
                                                                 [color c]
-                                                                [posX (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 5)) get-pos-x)]
-                                                                [posY (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 5)) get-pos-y)]))
+                                                                [posX (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 5)) get-posX)]
+                                                                [posY (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 5)) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) (+ posDown2 6))))
                           (drop board (+ posDown 2)))
                       '()))))
@@ -816,12 +694,12 @@ mc es la instanciación del canvas
           (append (take board pos)
                   (list (append (take (list-ref board pos) (sub1 pos2)) (list (new cCheckersBox%
                                                                                      [color c]
-                                                                                     [posX (send (list-ref (list-ref board pos) (sub1 pos2)) get-pos-x)]
-                                                                                     [posY (send (list-ref (list-ref board pos) (sub1 pos2)) get-pos-y)])
+                                                                                     [posX (send (list-ref (list-ref board pos) (sub1 pos2)) get-posX)]
+                                                                                     [posY (send (list-ref (list-ref board pos) (sub1 pos2)) get-posY)])
                                                                                 (new cCheckersBox%
                                                                                      [color "white"]
-                                                                                     [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                                     [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                                     [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                                     [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                 (drop (list-ref board pos) (add1 pos2))))
                   (drop board (add1 pos)))
           (if (= pos2 1)
@@ -830,13 +708,13 @@ mc es la instanciación del canvas
                   (append (take board pos)
                           (list (append (take (list-ref board pos) (- pos2 2)) (list (new cCheckersBox%
                                                                                      [color c]
-                                                                                     [posX (send (list-ref (list-ref board pos) (- pos2 2)) get-pos-x)]
-                                                                                     [posY (send (list-ref (list-ref board pos) (- pos2 2)) get-pos-y)])
+                                                                                     [posX (send (list-ref (list-ref board pos) (- pos2 2)) get-posX)]
+                                                                                     [posY (send (list-ref (list-ref board pos) (- pos2 2)) get-posY)])
                                                                                 (list-ref (list-ref board pos) (sub1 pos2))
                                                                                 (new cCheckersBox%
                                                                                      [color "white"]
-                                                                                     [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                                     [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)]))
+                                                                                     [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                                     [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                 (drop (list-ref board pos) (add1 pos2))))
                   (drop board (add1 pos)))
                   '())))))
@@ -848,12 +726,12 @@ mc es la instanciación del canvas
           (append (take board pos)
                   (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                                      [color "white"]
-                                                                                     [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                                     [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)])
+                                                                                     [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                                     [posY (send (list-ref (list-ref board pos) pos2) get-posY)])
                                                                                 (new cCheckersBox%
                                                                                      [color c]
-                                                                                     [posX (send (list-ref (list-ref board pos) (add1 pos2)) get-pos-x)]
-                                                                                     [posY (send (list-ref (list-ref board pos) (add1 pos2)) get-pos-y)]))
+                                                                                     [posX (send (list-ref (list-ref board pos) (add1 pos2)) get-posX)]
+                                                                                     [posY (send (list-ref (list-ref board pos) (add1 pos2)) get-posY)]))
                                 (drop (list-ref board pos) (+ pos2 2))))
                   (drop board (add1 pos)))
           (if (= pos2 (- (length (list-ref board pos)) 2))
@@ -862,19 +740,18 @@ mc es la instanciación del canvas
                   (append (take board pos)
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                                      [color "white"]
-                                                                                     [posX (send (list-ref (list-ref board pos) pos2) get-pos-x)]
-                                                                                     [posY (send (list-ref (list-ref board pos) pos2) get-pos-y)])
+                                                                                     [posX (send (list-ref (list-ref board pos) pos2) get-posX)]
+                                                                                     [posY (send (list-ref (list-ref board pos) pos2) get-posY)])
                                                                                 (list-ref (list-ref board pos) (add1 pos2))
                                                                                 (new cCheckersBox%
                                                                                      [color c]
-                                                                                     [posX (send (list-ref (list-ref board pos) (+ pos2 2)) get-pos-x)]
-                                                                                     [posY (send (list-ref (list-ref board pos) (+ pos2 2)) get-pos-y)]))
+                                                                                     [posX (send (list-ref (list-ref board pos) (+ pos2 2)) get-posX)]
+                                                                                     [posY (send (list-ref (list-ref board pos) (+ pos2 2)) get-posY)]))
                                 (drop (list-ref board pos) (+ pos2 3))))
                   (drop board (add1 pos)))
                   '())))))
 
 (define lst (list 1 2 3 4 5))
-
 
 
 ; Muestra la ventana
