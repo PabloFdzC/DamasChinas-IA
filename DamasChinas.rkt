@@ -983,6 +983,417 @@ Salida:
                   (drop board (add1 pos)))
                   '())))))
 
+#|
+la función eval es una parte esencial del minimax que
+se encarga de recibir una posición del tablero y
+regresar un valor dependiendo de que tan buena sea
+la posición para la IA
+Parámetros:
+- board: recibe un tablero (lista de listas de objetos
+  cCheckersBox)
+Salida:
+- El valor de la posición del tablero
+|#
+(define (eval board)
+  (eval-aux board 0 (length board) 0))
+
+
+#|
+eval-aux es usada por eval para ir recorriendo las filas
+del tablero en busca de las fichas verdes
+Parámetros:
+- board: recibe un tablero (lista de listas de objetos
+  cCheckersBox)
+- pos: el número de fila actual
+- max: la cantidad de filas que tiene el tablero
+- value: el valor que se va obteniendo
+Salida:
+- El valor que va acumulando la fila
+|#
+(define (eval-aux board pos max value)
+  (if (= pos max)
+      value
+      (eval-aux
+       board (add1 pos) max (eval-aux2 board pos 0 (length (list-ref board pos)) value))))
+
+#|
+eval-aux2 es usada por eval-aux con cada fila para
+recorrer todas las casillas de una fila, revisa si
+la casilla es verde o roja para calcular el valor
+- board: recibe un tablero (lista de listas de objetos
+  cCheckersBox)
+- pos: el número de fila actual
+- pos2: el número de columna que se está revisando
+  actualmente
+- max: la cantidad de columnas que tiene la fila
+- moves: el valor que se va acumulando
+Salida:
+- Devuelve el valor obtenido por la casilla 
+|#
+(define (eval-aux2 board pos pos2 max value)
+  (if (= pos2 max)
+      value
+      (if (equal? (send (list-ref (list-ref board pos) pos2) get-color) "green")
+          (eval-aux2 board pos (add1 pos2) max
+                                  (+ value (check-distance-green-pos board pos pos2) (check-jumps-green-pos board pos pos2)))
+          (if (equal? (send (list-ref (list-ref board pos) pos2) get-color) "red")
+              (eval-aux2 board pos (add1 pos2) max
+                         (- value (check-distance-red-pos board pos pos2) (check-jumps-red-pos board pos pos2)))
+              (eval-aux2 board pos (add1 pos2) max value)
+              ))
+      )
+  )
+
+#|
+check-distance-green-pos se encarga de revisar
+la distancia entre una ficha verde en el tablero
+y la posición de más abajo del tablero, con el
+fin de saber que tan cerca está del objetivo, el
+resultado se le resta a 352 debido a que esta es la
+distancia más larga y entre más larga sea la distancia
+peor debería ser el resultado
+Entrada:
+- board: recibe un tablero (lista de listas de objetos
+  cCheckersBox)
+- pos: el número de fila de la ficha
+- pos2: el número de columna de la ficha
+Salida:
+- El valor obtenido basado en la distancia
+|#
+
+(define (check-distance-green-pos board pos pos2)
+  (- 352 (sqrt (+ (expt (- 150 (send (list-ref (list-ref board pos) pos2) get-posX)) 2) (expt (- 362 (send (list-ref (list-ref board pos) pos2) get-posY)) 2)))))
+
+#|
+check-jumps-green-pos se encarga de revisar
+los saltos que pueden hacer las fichas verdes
+hacia abajo, es decir hacia el objetivo, por
+cada uno de estos saltos se suma 10 al valor
+final
+Entrada:
+- board: recibe un tablero (lista de listas de objetos
+  cCheckersBox)
+- pos: el número de fila de la ficha
+- pos2: el número de columna de la ficha
+Salida:
+- El valor obtenido por los saltos
+|#
+
+(define (check-jumps-green-pos board pos pos2)
+  (+ (check-if-jump-down-left board pos pos2) (check-if-jump-down-right board pos pos2)))
+
+#|
+check-distance-green-pos se encarga de revisar
+la distancia entre una ficha roja en el tablero
+y la posición de más arriba del tablero, con el
+fin de saber que tan cerca está del objetivo, el
+resultado se le resta a 352 debido a que esta es la
+distancia más larga y entre más larga sea la distancia
+peor debería ser el resultado.
+Entrada:
+- board: recibe un tablero (lista de listas de objetos
+  cCheckersBox)
+- pos: el número de fila de la ficha
+- pos2: el número de columna de la ficha
+Salida:
+- El valor obtenido basado en la distancia
+|#
+
+(define (check-distance-red-pos board pos pos2)
+  (- 352 (sqrt (+ (expt (- 150 (send (list-ref (list-ref board pos) pos2) get-posX)) 2) (expt (- 10 (send (list-ref (list-ref board pos) pos2) get-posY)) 2)))))
+
+#|
+check-jumps-red-pos se encarga de revisar
+los saltos que pueden hacer las fichas rojas
+hacia arriba, es decir hacia el objetivo, por
+cada uno de estos saltos se suma 10 al valor
+final
+Entrada:
+- board: recibe un tablero (lista de listas de objetos
+  cCheckersBox)
+- pos: el número de fila de la ficha
+- pos2: el número de columna de la ficha
+Salida:
+- El valor obtenido por los saltos
+|#
+(define (check-jumps-red-pos board pos pos2)
+  (+ (check-if-jump-up-left board pos pos2) (check-if-jump-up-right board pos pos2)))
+
+#|
+check-if-jump-down-left revisa si una casilla puede realizar
+un salto hacia abajo a la izquierda
+Entrada:
+- board: recibe un tablero (lista de listas de objetos
+  cCheckersBox)
+- pos: el número de fila de la ficha
+- pos2: el número de columna de la ficha
+Salida:
+- un 10 si puede realizar el salto, si no un 0
+|#
+(define (check-if-jump-down-left board pos pos2)
+  (if (< (length (list-ref board (add1 pos))) (length (list-ref board pos)))
+      (if (= pos2 0)
+          0
+          (if (= (- (length (list-ref board pos)) (length (list-ref board (add1 pos)))) 1)
+              (if (or (= pos 15)
+                      (equal? (send (list-ref (list-ref board (add1 pos)) (sub1 pos2)) get-color) "white")) 
+                  0
+                  (check-if-jump-down-left-aux board (add1 pos)(sub1 pos2)))
+              (if (and (> pos2 4) (< pos2 9))
+                  (if (or (= pos 15)
+                          (equal? (send (list-ref (list-ref board (add1 pos)) (- pos2 5)) get-color) "white"))
+                      0
+                      (check-if-jump-down-left-aux board (add1 pos)(- pos2 5)))
+                  0
+                  )))
+      (if (= (- (length (list-ref board (add1 pos))) (length (list-ref board pos))) 1)
+          (if ( equal? (send (list-ref (list-ref board (add1 pos)) pos2) get-color) "white")
+                  0
+                  (check-if-jump-down-left-aux board (add1 pos) pos2))
+          (if ( equal? (send (list-ref (list-ref board (add1 pos)) (+ pos2 4)) get-color) "white")
+                      0
+                      (check-if-jump-down-left-aux board (add1 pos)(+ pos2 4))))))
+
+#|
+check-if-jump-down-left-aux es usada por check-if-jump-down-left
+ayudando a revisar si la ficha puede realizar un salto hacia
+abajo a la izquierda
+Entrada:
+- board: recibe un tablero (lista de listas de objetos
+  cCheckersBox)
+- posDown: el número de fila de la casilla que está abajo a
+  la izquierda de la ficha
+- posDown2 el número de columna de la casilla que está abajo a
+  la izquierda de la ficha
+Salida:
+- un 10 si puede realizar el salto, si no un 0
+|#
+(define (check-if-jump-down-left-aux board posDown posDown2)
+  (if (< (length (list-ref board (add1 posDown))) (length (list-ref board posDown)))
+      (if (= posDown2 0)
+          0
+          (if (= (- (length (list-ref board posDown)) (length (list-ref board (add1 posDown)))) 1)
+              (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (sub1 posDown2)) get-color) "white")
+                  10
+                  '0)
+              (if (and (> posDown2 4) (< posDown2 9))
+                  10
+                  0
+                  )))
+      (if (= (- (length (list-ref board (add1 posDown))) (length (list-ref board posDown))) 1)
+          (if ( equal? (send (list-ref (list-ref board (add1 posDown)) posDown2) get-color) "white")
+                  10
+                  0)
+          (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 4)) get-color) "white")
+                      10
+                      0))))
+
+#|
+check-if-jump-down-right revisa si una casilla puede realizar
+un salto hacia abajo a la derecha
+Entrada:
+- board: recibe un tablero (lista de listas de objetos
+  cCheckersBox)
+- pos: el número de fila de la ficha
+- pos2: el número de columna de la ficha
+Salida:
+- un 10 si puede realizar el salto, si no un 0
+|#
+(define (check-if-jump-down-right board pos pos2)
+  (if (< (length (list-ref board (add1 pos))) (length (list-ref board pos)))
+      (if (= pos2 (- (length (list-ref board pos)) 1))
+          0
+          (if (= (- (length (list-ref board pos)) (length (list-ref board (add1 pos)))) 1)
+              (if (or (= pos 15) ( equal? (send (list-ref (list-ref board (add1 pos)) pos2) get-color) "white"))
+                  0
+                  (check-if-jump-down-right-aux board (add1 pos) pos2))
+              (if (and (> pos2 3) (< pos2 8))
+                  (if (or (= pos 15) ( equal? (send (list-ref (list-ref board (add1 pos)) (- pos2 4)) get-color) "white"))
+                      0
+                      (check-if-jump-down-right-aux board (add1 pos)(- pos2 4)))
+                  0
+                  )))
+      (if (= (- (length (list-ref board (add1 pos))) (length (list-ref board pos))) 1)
+          (if ( equal? (send (list-ref (list-ref board (add1 pos)) (add1 pos2)) get-color) "white")
+                  0
+                  (check-if-jump-down-right-aux board (add1 pos) (add1 pos2)))
+          (if ( equal? (send (list-ref (list-ref board (add1 pos)) (+ pos2 5)) get-color) "white")
+                      0
+                      (check-if-jump-down-right-aux board (add1 pos)(+ pos2 5))))))
+
+#|
+check-if-jump-down-right-aux es usada por check-if-jump-down-right
+ayudando a revisar si la ficha puede realizar un salto hacia
+abajo a la derecha
+Entrada:
+- board: recibe un tablero (lista de listas de objetos
+  cCheckersBox)
+- posDown: el número de fila de la casilla que está abajo a
+  la derecha de la ficha
+- posDown2 el número de columna de la casilla que está abajo a
+  la derecha de la ficha
+Salida:
+- un 10 si puede realizar el salto, si no un 0
+|#
+(define (check-if-jump-down-right-aux board posDown posDown2)
+  (if (< (length (list-ref board (add1 posDown))) (length (list-ref board posDown)))
+      (if (= posDown2 (- (length (list-ref board posDown)) 1))
+          0
+          (if (= (- (length (list-ref board posDown)) (length (list-ref board (add1 posDown)))) 1)
+              (if ( equal? (send (list-ref (list-ref board (add1 posDown)) posDown2) get-color) "white")
+                  10
+                  0)
+              (if (and (> posDown2 3) (< posDown2 8))
+                  (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (- posDown2 4)) get-color) "white")
+                      10
+                      0)
+                  0
+                  )))
+      (if (= (- (length (list-ref board (add1 posDown))) (length (list-ref board posDown))) 1)
+          (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (add1 posDown2)) get-color) "white")
+                  10
+                  0)
+          (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 5)) get-color) "white")
+                      10
+                      0))))
+
+#|
+check-if-jump-up-left revisa si una casilla puede realizar
+un salto hacia arriba a la izquierda
+Entrada:
+- board: recibe un tablero (lista de listas de objetos
+  cCheckersBox)
+- pos: el número de fila de la ficha
+- pos2: el número de columna de la ficha
+Salida:
+- un 10 si puede realizar el salto, si no un 0
+|#
+(define (check-if-jump-up-left board pos pos2)
+  (if (< (length (list-ref board (sub1 pos))) (length (list-ref board pos)))
+      (if (= pos2 0)
+          0
+          (if (= (- (length (list-ref board pos)) (length (list-ref board (sub1 pos)))) 1)
+              (if (or (= pos 1) ( equal? (send (list-ref (list-ref board (sub1 pos)) (sub1 pos2)) get-color) "white"))
+                  0
+                  (check-if-jump-up-left-aux board (sub1 pos)(sub1 pos2)))
+              (if (and (> pos2 4) (< pos2 9))
+                  (if (or (= pos 1) ( equal? (send (list-ref (list-ref board (sub1 pos)) (- pos2 5)) get-color) "white"))
+                      0
+                      (check-if-jump-up-left-aux board (sub1 pos)(- pos2 5)))
+                  0
+                  )))
+      (if (= (- (length (list-ref board (sub1 pos))) (length (list-ref board pos))) 1)
+          (if ( equal? (send (list-ref (list-ref board (sub1 pos)) pos2) get-color) "white")
+                  0
+                  (check-if-jump-up-left-aux board (sub1 pos) pos2))
+          (if ( equal? (send (list-ref (list-ref board (sub1 pos)) (+ pos2 4)) get-color) "white")
+                      0
+                      (check-if-jump-up-left-aux board (sub1 pos)(+ pos2 4))))))
+
+#|
+check-if-jump-up-left-aux es usada por check-if-jump-up-left
+ayudando a revisar si la ficha puede realizar un salto hacia
+arriba a la izquierda
+Entrada:
+- board: recibe un tablero (lista de listas de objetos
+  cCheckersBox)
+- posDown: el número de fila de la casilla que está arriba a
+  la izquierda de la ficha
+- posDown2 el número de columna de la casilla que está arriba a
+  la izquierda de la ficha
+Salida:
+- un 10 si puede realizar el salto, si no un 0
+|#
+(define (check-if-jump-up-left-aux board posUp posUp2)
+  (if (< (length (list-ref board (sub1 posUp))) (length (list-ref board posUp)))
+      (if (= posUp2 0)
+          0
+          (if (= (- (length (list-ref board posUp)) (length (list-ref board (sub1 posUp)))) 1)
+              (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (sub1 posUp2)) get-color) "white")
+                  10
+                  0)
+              (if (and (> posUp2 4) (< posUp2 9))
+                  (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (- posUp2 5)) get-color) "white")
+                      10
+                      0)
+                  0
+                  )))
+      (if (= (- (length (list-ref board (sub1 posUp))) (length (list-ref board posUp))) 1)
+          (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) posUp2) get-color) "white")
+                  10
+                  0)
+          (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 4)) get-color) "white")
+                      10
+                      0))))
+
+#|
+check-if-jump-up-right revisa si una casilla puede realizar
+un salto hacia arriba a la derecha
+Entrada:
+- board: recibe un tablero (lista de listas de objetos
+  cCheckersBox)
+- pos: el número de fila de la ficha
+- pos2: el número de columna de la ficha
+Salida:
+- un 10 si puede realizar el salto, si no un 0
+|#
+(define (check-if-jump-up-right board pos pos2)
+  (if (< (length (list-ref board (sub1 pos))) (length (list-ref board pos)))
+      (if (= pos2 (- (length (list-ref board pos)) 1))
+          0
+          (if (= (- (length (list-ref board pos)) (length (list-ref board (sub1 pos)))) 1)
+              (if (or (= pos 1) ( equal? (send (list-ref (list-ref board (sub1 pos)) pos2) get-color) "white"))
+                  0
+                  (check-if-jump-up-right-aux board (sub1 pos) pos2))
+              (if (and (> pos2 3) (< pos2 8))
+                  (if (or (= pos 1) ( equal? (send (list-ref (list-ref board (sub1 pos)) (- pos2 4)) get-color) "white"))
+                      0
+                      (check-if-jump-up-right-aux board (sub1 pos)(- pos2 4)))
+                  0
+                  )))
+      (if (= (- (length (list-ref board (sub1 pos))) (length (list-ref board pos))) 1)
+          (if ( equal? (send (list-ref (list-ref board (sub1 pos)) (add1 pos2)) get-color) "white")
+                  0
+                  (check-if-jump-up-right-aux board (sub1 pos) (add1 pos2)))
+          (if ( equal? (send (list-ref (list-ref board (sub1 pos)) (+ pos2 5)) get-color) "white")
+                      0
+                      (check-if-jump-up-right-aux board (sub1 pos)(+ pos2 5))))))
+
+#|
+check-if-jump-up-right-aux es usada por check-if-jump-up-right
+ayudando a revisar si la ficha puede realizar un salto hacia
+arriba a la derecha
+Entrada:
+- board: recibe un tablero (lista de listas de objetos
+  cCheckersBox)
+- posDown: el número de fila de la casilla que está arriba a
+  la derecha de la ficha
+- posDown2 el número de columna de la casilla que está arriba a
+  la derecha de la ficha
+Salida:
+- un 10 si puede realizar el salto, si no un 0
+|#
+(define (check-if-jump-up-right-aux board posUp posUp2)
+  (if (< (length (list-ref board (sub1 posUp))) (length (list-ref board posUp)))
+      (if (= posUp2 (- (length (list-ref board posUp)) 1))
+          0
+          (if (= (- (length (list-ref board posUp)) (length (list-ref board (sub1 posUp)))) 1)
+              (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) posUp2) get-color) "white")
+                  10
+                  0)
+              (if (and (> posUp2 3) (< posUp2 8))
+                  (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (- posUp2 4)) get-color) "white")
+                      10
+                      0)
+                  0
+                  )))
+      (if (= (- (length (list-ref board (sub1 posUp))) (length (list-ref board posUp))) 1)
+          (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (add1 posUp2)) get-color) "white")
+                  10
+                  0)
+          (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 5)) get-color) "white")
+                      10
+                      0))))
 
 ; Muestra la ventana
 (send frame show #t)
