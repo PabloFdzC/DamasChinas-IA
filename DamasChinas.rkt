@@ -3,48 +3,6 @@
 (require "board.rkt")
 (require "cCheckersBox.rkt")
 
-#|
-paint-board se encarga de recorrer la lista de listas
-que representa el tablero
-dado
-Parámetros:
-- board: recibe un tablero (lista de listas de objetos
-  cCheckersBox)
-- mc: el canvas donde se dibujará el tablero
-Salida:
-- Ninguna
-|#
-(define (paint-board board mc)
-  #|
-  paint-board-aux dibuja el tablero de juego en un canvas.
-  Esta función es llamada por paint-board
-  dado
-  Parámetros:
-  - board: recibe una hilera del tablero (lista de objetos
-    cCheckersBox)
-  - mc: el canvas donde se dibujará el tablero
-  Salida:
-  - Ninguna
-  |#
-  (define (paint-board-aux board mc)
-    (if (not (empty? board))
-        ((lambda (board mc)
-           (send (first board) draw-circle mc)
-           (paint-board-aux (rest board) mc))
-         board mc)
-        (void)
-        )
-    )
-  
-  (if (not (empty? board))
-      ((lambda (board mc)
-         (paint-board-aux (first board) mc)
-         (paint-board (rest board) mc))
-       board mc)
-      (void)
-      )
-  )
-
 
 #|
 Crea la ventana del programa, frame se puede
@@ -94,8 +52,17 @@ mc es la instanciación del canvas
       (lambda (canvas dc)
         (send dc set-background "black")
         (send dc clear)
+        (send dc set-text-foreground "black")
+        (send (send mc get-dc) set-brush "white" 'solid)
+        (send dc draw-rounded-rectangle 490 10 110 30)
+        (send dc draw-text "Nuevo Juego" 500 15)
+        (send dc set-text-foreground "white")
+        (send (send mc get-dc) set-brush "blue" 'solid)
+        (send dc draw-rounded-rectangle 490 300 110 45)
+        (send dc draw-text "Confirmar" 510 305)
+        (send dc draw-text "Movimiento" 505 320)
         (send game new-game) ; Se crea un nuevo juego
-        (paint-board (send game get-current-game) mc) ; Se pinta el tablero inicial
+        (send game paint-board (send game get-current-game) mc) ; Se pinta el tablero inicial
         ;(paint-board (list-ref (check-possible-moves (send game get-current-game) "red") 0) mc)
         )]))
 
