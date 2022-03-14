@@ -50,6 +50,17 @@
       (set! game (send this create-board))
       )
     
+    #|
+      is-move-single indica si 2 casillas que
+      representan un movimiento se encuentran 
+      una junto a la otra, esto significa que
+      se movió solo una casilla
+      Parámetros:
+      - box1: objeto cCheckersBox
+      - box2: objeto cCheckersBox
+      Salida:
+      - booleano
+    |#
     (define/public (is-move-single box1 box2)
       (or
         (and ;revisa que se pueda mover a un espacio que esté inmediatamente al lado vertical
@@ -63,6 +74,17 @@
         )
       )
 
+    #|
+      is-move-jump indica si 2 casillas que
+      representan un movimiento se encuentran 
+      a un salto de la otra, esto significa que
+      se movió con salto
+      Parámetros:
+      - box1: objeto cCheckersBox
+      - box2: objeto cCheckersBox
+      Salida:
+      - booleano
+    |#
     (define/public (is-move-jump box1 box2)
       (or
         (and ;revisa que se intente mover dando un salto en diagonal
@@ -105,7 +127,9 @@
     #|
       select-box selecciona una casilla del tablero
       y le cambia el color ya sea para saber cuál pieza
-      se mueve o para mover una pieza
+      se mueve o para mover una pieza. También si es el
+      caso permite seleccionar los botones de "Nuevo Juego"
+      y "Confirmar Movimiento"
       Parámetros:
       - posX: posición "x" de la pieza
       - posY: posición "y" de la pieza
@@ -170,9 +194,19 @@
       - posX: posición "x" de la casilla
       - posY: posición "y" de la casilla
       Salida:
-      - Ninguna
+      - objeto cCheckersBox o nada
     |#
     (define/public (find-box posX posY)
+      #|
+        find-box-aux permite iterar la el tablero
+        para buscar la casilla correspondiente
+        Entradas:
+        - posX: posición "x" de la casilla
+        - posY: posición "y" de la casilla
+        Salida:
+        - objeto cCheckersBox o nada (lo que
+          devuelve find-box-aux2)
+      |#
       (define (find-box-aux lst posX posY)
         (if (not(empty? lst))
             (if (send (caar lst) is-posY-in posY)
@@ -182,6 +216,16 @@
             (void)
             )
         )
+      #|
+        find-box-aux2 devuelve el objeto cCheckersBox
+        si lo encuentra, sino devuelve void
+        Entradas:
+        - posX: posición "x" de la casilla
+        - posY: posición "y" de la casilla
+        Salida:
+        - objeto cCheckersBox o nada (lo que
+          devuelve find-box-aux2)
+      |#
       (define (find-box-aux2 lst posX posY)
         (if (not(empty? lst))
             (if (send (car lst) is-posX-close posX)
@@ -317,7 +361,14 @@
               (reverse (create-board-aux2 '() 0 3 "red" startX (+ startY (* 16 spaceY)) #t))
               )
       )
-    
+    #|
+    move-done termina el turno del jugador y settea las
+    variables de movimientos en su estado inicial
+    Parámetros:
+    - Ninguno
+    Salida:
+    - Ninguna
+    |#
     (define/public (move-done) (
       (send this set-selectedBox (void))
       (send this set-lastMoved null)

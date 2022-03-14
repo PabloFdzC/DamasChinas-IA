@@ -2019,6 +2019,113 @@ Salida:
                       (+ 10 (check-jumps-red-pos board (sub1 posUp) (+ posUp2 5)))
                       0))))
 
+#|
+alpha-beta-search devuelve el tablero que sería la
+decisión tomada después de haber hecho minimax con
+poda alpha beta
+Parámetros:
+- board: lista de listas de objetos cCheckersBox
+- color1: color del jugador a maximizar
+- color2: color del jugador a minimizar
+Salida:
+- Devuelve una lista de listas de objetos cCheckersBox
+|#
+(define (alpha-beta-search board color1 color2)
+  (cadr (max-move board -inf.0 +inf.0 color1 color2 10 10))
+  )
+
+#|
+max-move max del minimax
+Parámetros:
+- board: lista de listas de objetos cCheckersBox
+- alpha: el mejor valor para max
+- beta: el mejor valor para min
+- color1: color del jugador a maximizar
+- color2: color del jugador a minimizar
+- expandDeep: cuanto se expande en profundidad el árbol
+- expandWide: cuanto se expande en anchura el árbol
+Salida:
+- Devuelve una lista con un valor y una lista de listas de objetos cCheckersBox
+|#
+(define (max-move board alpha beta color1 color2 expandDeep expandWide)
+  (if (<= expandDeep 0)
+    (eval board)
+    (max-move-aux (check-possible-moves board color1) alpha beta (list -inf.0 null) color1 color2 expandDeep expandWide)
+    )
+  )
+
+#|
+max-move-aux ayuda a iterar la lista de movimientos
+Parámetros:
+- board: lista de listas de objetos cCheckersBox
+- alpha: el mejor valor para max
+- beta: el mejor valor para min
+- color1: color del jugador a maximizar
+- color2: color del jugador a minimizar
+- expandDeep: cuanto se expande en profundidad el árbol
+- expandWide: cuanto se expande en anchura el árbol
+Salida:
+- Devuelve una lista con un valor y una lista de listas de objetos cCheckersBox
+|#
+(define (max-move-aux moves alpha beta v color1 color2 expandDeep expandWide)
+  ((lambda (x)
+    (if (> (car x) (car v))
+      (set! v x)
+      (void))
+    (if (or (>= (car v) beta) (<= expandWide 0))
+      v
+      (max-move-aux (cdr moves) (max alpha (car v)) v beta color1 color2 expandDeep (sub1 expandWide))))
+
+      (min-move (car moves) alpha beta color2 color1 (sub1 expandDeep) expandWide); Este es el valor de x inicial
+    )
+      
+  )
+
+#|
+min-move min del minimax
+Parámetros:
+- board: lista de listas de objetos cCheckersBox
+- alpha: el mejor valor para max
+- beta: el mejor valor para min
+- color1: color del jugador a maximizar
+- color2: color del jugador a minimizar
+- expandDeep: cuanto se expande en profundidad el árbol
+- expandWide: cuanto se expande en anchura el árbol
+Salida:
+- Devuelve una lista con un valor y una lista de listas de objetos cCheckersBox
+|#
+(define (min-move board alpha beta color1 color2 expandDeep expandWide)
+  (if (<= expandDeep 0)
+    (eval board)
+    (min-move-aux (check-possible-moves board color1) alpha beta (list +inf.0 null) expandDeep expandWide)
+    )
+  )
+
+#|
+min-move-aux ayuda a iterar la lista de movimientos
+Parámetros:
+- board: lista de listas de objetos cCheckersBox
+- alpha: el mejor valor para max
+- beta: el mejor valor para min
+- color1: color del jugador a maximizar
+- color2: color del jugador a minimizar
+- expandDeep: cuanto se expande en profundidad el árbol
+- expandWide: cuanto se expande en anchura el árbol
+Salida:
+- Devuelve una lista con un valor y una lista de listas de objetos cCheckersBox
+|#
+(define (min-move-aux moves alpha beta v color1 color2 expandDeep expandWide)
+  ((lambda (x)
+    (if (< (car x) (car v))
+      (set! v x)
+      (void))
+    (if (or (<= (car v) alpha) (<= expandWide 0))
+      v
+      (min-move-aux (cdr moves) alpha (min (car v) beta) expandDeep (sub1 expandWide))))
+      
+      (max-move (car moves) alpha beta color2 color1 (sub1 expandDeep) expandWide)); Este es el valor de x inicial
+  )
+
 ; Muestra la ventana
 (send frame show #t)
 ; Hace grande la ventana
