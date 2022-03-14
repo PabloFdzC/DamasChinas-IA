@@ -75,11 +75,17 @@ Parámetros:
   cCheckersBox)
 - color: el color de las fichas de las que se quieren
   saber sus posibles movimientos
+- max-moves: La cantidad máxima de movimientos
+  que se deben obtener
 Salida:
 - Una lista de tableros que representan los movimientos 
 |#
-(define (check-possible-moves board color)
-  (check-possible-moves-aux board color 0 (length board) '()))
+(define (check-possible-moves board color max-moves)
+  (if (equal? color "green")
+      (check-possible-moves-aux-green board color (sub1 (length board)) '() max-moves)
+      (check-possible-moves-aux board color 0 (length board) '() max-moves)
+      )
+  )
 
 
 #|
@@ -95,14 +101,41 @@ Parámetros:
 - pos: el número de fila actual
 - max: la cantidad de filas que tiene el tablero
 - moves: los movimientos que se van obteniendo
+- max-moves: La cantidad máxima de movimientos
+  que se deben obtener
 Salida:
 - Una lista de tableros que representan los movimientos 
 |#
-(define (check-possible-moves-aux board color pos max moves)
-  (if (= pos max)
+(define (check-possible-moves-aux board color pos max moves max-moves)
+  (if (or (= pos max) (>= (length moves) max-moves))
       moves
       (check-possible-moves-aux
-       board color (add1 pos) max (check-possible-moves-aux2 board color pos 0 (length (list-ref board pos)) moves))))
+       board color (add1 pos) max (check-possible-moves-aux2 board color pos 0 (length (list-ref board pos)) moves max-moves) max-moves)))
+
+#|
+check-possible-moves-aux-green realiza lo mismo que
+check-possible-moves-aux pero revisando el tablero
+de abajo para arriba en el caso de las fichas verdes
+para obtener los movimientos de más abajo que
+probablemente sean los de mayor prioridad
+Parámetros:
+- board: recibe un tablero (lista de listas de objetos
+  cCheckersBox)
+- color: el color de las fichas de las que se quieren
+  saber sus posibles movimientos
+- pos: el número de fila actual
+- moves: los movimientos que se van obteniendo
+- max-moves: La cantidad máxima de movimientos
+  que se deben obtener
+Salida:
+- Una lista de tableros que representan los movimientos 
+|#
+
+(define (check-possible-moves-aux-green board color pos moves max-moves)
+  (if (or (< pos 0) (>= (length moves) max-moves))
+      moves
+      (check-possible-moves-aux-green
+       board color (sub1 pos) (check-possible-moves-aux2 board color pos 0 (length (list-ref board pos)) moves max-moves) max-moves)))
 
 #|
 check-possible-moves-aux2 se encarga de recorrer una fila
@@ -118,16 +151,19 @@ Parámetros:
   actualmente
 - max: la cantidad de columnas que tiene la fila
 - moves: los movimientos que se van obteniendo
+- max-moves: La cantidad máxima de movimientos
+  que se deben obtener
 Salida:
 - Una lista de tableros que representan los movimientos 
 |#
-(define (check-possible-moves-aux2 board color pos pos2 max moves)
-  (if (= pos2 max)
+(define (check-possible-moves-aux2 board color pos pos2 max moves max-moves)
+  (if (or (= pos2 max) (>= (length moves) max-moves))
       moves
       (if (equal? (send (list-ref (list-ref board pos) pos2) get-color) color)
           (check-possible-moves-aux2 board color pos (add1 pos2) max
-                                  (check-possible-moves-pos board pos pos2 color moves))
-          (check-possible-moves-aux2 board color pos (add1 pos2) max moves))))
+                                  (check-possible-moves-pos board pos pos2 color moves) max-moves)
+          (check-possible-moves-aux2 board color pos (add1 pos2) max moves max-moves))))
+
 
 #|
 check-possible-moves-pos se encarga de obtener todos
@@ -1000,12 +1036,12 @@ Salida:
 (define (check-jumps board pos pos2 direction)
   (append
    (list board)
-   (if (equal? direction "up-right") '() (check-jump-down-left board pos pos2))
-   (if (equal? direction "up-left") '() (check-jump-down-right board pos pos2))
-   (if (equal? direction "down-right") '() (check-jump-up-left board pos pos2))
-   (if (equal? direction "down-left") '() (check-jump-up-right board pos pos2))
-   (if (equal? direction "right") '() (check-jump-left board pos pos2))
-   (if (equal? direction "left") '() (check-jump-right board pos pos2)))
+   (if (or (>= pos 15) (equal? direction "up-right")) '() (check-jump-down-left board pos pos2))
+   (if (or (>= pos 15) (equal? direction "up-left")) '() (check-jump-down-right board pos pos2))
+   (if (or (<= pos 1) (equal? direction "down-right")) '() (check-jump-up-left board pos pos2))
+   (if (or (<= pos 1) (equal? direction "down-left")) '() (check-jump-up-right board pos pos2))
+   (if (or (<= pos2 1) (equal? direction "right")) '() (check-jump-left board pos pos2))
+   (if (or (>= pos2 (- (length (list-ref board pos)) 2)) (equal? direction "left")) '() (check-jump-right board pos pos2)))
   )
 
 #|
