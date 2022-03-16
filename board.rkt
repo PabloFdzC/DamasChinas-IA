@@ -1,5 +1,6 @@
 #lang racket
 (require "cCheckersBox.rkt")
+(require "minimax.rkt")
 
 (define board%
   (class object%
@@ -15,6 +16,7 @@
                 [preLastMoved null]
                 [previousColor null]
                 [game null]
+                [playWithAI #t]
                 )
     ; Los siguientes son getters y setters
     (define/public (get-turn) turn)
@@ -25,6 +27,9 @@
     (define/public (get-current-game) game)
     (define/public (set-turn t)
       (set! turn t)
+      )
+    (define/public (set-current-game g)
+      (set! game g)
       )
     (define/public (set-selectedBox b)
       (set! selectedBox b)
@@ -47,6 +52,7 @@
       - Ninguna
     |#
     (define/public (new-game)
+      (send this reset-variables)
       (set! game (send this create-board))
       )
     
@@ -140,13 +146,15 @@
     |#
     (define/public (select-box posX posY mc pColor)
       (cond 
-        [(and (>= posX 490) (>= posY 10) (<= posX 600) (<= posY 40)) ((lambda () (send this new-game) (send this paint-board game mc)))]
-        [(and (>= posX 490) (>= posY 300) (<= posX 600) (<= posY 345)) ((lambda () (send this move-done)))]
+        [(and (>= posX 490) (>= posY 10) (<= posX 600) (<= posY 40)) ((lambda () (send this new-game) (send this paint-board (send this get-current-game) mc)))]
+        [(and (>= posX 490) (>= posY 300) (<= posX 600) (<= posY 345)) (send this move-done mc)]
         [else (let ([b (find-box posX posY)])
+          (if (void? b) (void) (display (string-append "\nb: (" (number->string (send b get-posX)) ", " (number->string (send b get-posY)) ") " (send b get-color) "\n")))
+          (if (null? lastMoved) (void) (display (string-append "lm: (" (number->string (send lastMoved get-posX)) ", " (number->string (send lastMoved get-posY)) ") " (send lastMoved get-color) "\n")))
+          (if (void? selectedBox) (void) (display (string-append "sb: (" (number->string (send selectedBox get-posX)) ", " (number->string (send selectedBox get-posY)) ") " (send selectedBox get-color) "\n")))
           (if (void? selectedBox)
               (void)
               ((lambda (selectedBox previousColor)
-                ;(if (null? lastMoved) (void) (display (string-append "b: (" (number->string (send b get-posX)) ", " (number->string (send b get-posY)) ")\nlm: (" (number->string (send lastMoved get-posX)) ", " (number->string (send lastMoved get-posY)) ")\nsb: (" (number->string (send selectedBox get-posX)) ", " (number->string (send selectedBox get-posY)) ")\n")))
                 (send selectedBox set-color previousColor)
                 (send selectedBox paint-circle mc)
                 ) selectedBox previousColor)
@@ -184,7 +192,6 @@
                   )
                   )
               )
-          
           )])
       )
     #|
@@ -235,7 +242,7 @@
             (void)
             )
         )
-      (find-box-aux game posX posY)
+      (find-box-aux (send this get-current-game) posX posY)
       )
 
     #|
@@ -270,14 +277,45 @@
             (void)
             )
         )
-      
       (if (not (empty? board))
-          ((lambda (board mc g)
-            (paint-board-aux (first board) mc)
-            (send g paint-board (rest board) mc))
-          board mc this)
-          (void)
-          )
+        ((lambda (board mc g)
+          (paint-board-aux (first board) mc)
+          (send g paint-board (rest board) mc))
+        board mc this)
+        (void)
+        )
+      )
+    
+    (define/public (paint-board-only-changes board boardChanged mc)
+      #|
+      paint-board-aux dibuja el tablero de juego en un canvas.
+      Esta función es llamada por paint-board
+      dado
+      Parámetros:
+      - board: recibe una hilera del tablero (lista de objetos
+        cCheckersBox)
+      - mc: el canvas donde se dibujará el tablero
+      Salida:
+      - Ninguna
+      |#
+      (define (paint-board-only-changes-aux board boardChanged mc)
+        (if (not (empty? board))
+            ((lambda (board mc)
+              (if (equal? (send (first board) get-color) (send (first boardChanged) get-color))
+                (void)
+                (send (first boardChanged) draw-circle mc))
+              (paint-board-only-changes-aux (rest board) (rest boardChanged) mc))
+            board mc)
+            (void)
+            )
+        )
+      (if (not (empty? board))
+        ((lambda (board boardChanged mc g)
+          (paint-board-only-changes-aux (first board) (first boardChanged) mc)
+          (send g paint-board-only-changes (rest board) (rest boardChanged) mc))
+        board boardChanged mc this)
+        (void)
+        )
       )
     #|
     create-board crea una lista que representa el tablero
@@ -365,17 +403,57 @@
     move-done termina el turno del jugador y settea las
     variables de movimientos en su estado inicial
     Parámetros:
-    - Ninguno
+    - mc: es el canvas del juego
     Salida:
     - Ninguna
     |#
-    (define/public (move-done) (
+    (define/public (move-done mc)
+      (if (null? lastMoved)
+        (void)
+        ((lambda ()
+          (send this reset-variables)
+          (if playWithAI
+            (send this make-ai-move mc)
+            (send this set-turn (not (send this get-turn)))
+            )))
+        )
+      )
+    
+    (define/public (reset-variables)
       (send this set-selectedBox (void))
       (send this set-lastMoved null)
       (send this set-previousColor null)
-      (send this set-turn (not (send this get-turn)))
-      ))
+      )
+     
+     (define/public (paint-buttons mc)
+      (let ([dc (send mc get-dc)])
+        (send dc set-text-foreground "black")
+        (send dc set-brush "white" 'solid)
+        (send dc draw-rounded-rectangle 490 10 110 30)
+        (send dc draw-text "Nuevo Juego" 500 15)
+        (send dc set-text-foreground "white")
+        (send dc set-brush "blue" 'solid)
+        (send dc draw-rounded-rectangle 490 300 110 45)
+        (send dc draw-text "Confirmar" 510 305)
+        (send dc draw-text "Movimiento" 505 320)
+        )
+      )
+      
+    (define/public (make-ai-move mc)
+      ((lambda (newBoard obj)
+        (send this paint-board-only-changes (send obj get-current-game) newBoard mc)
+        (send this set-current-game newBoard)
+        ) (alpha-beta-search (send this get-current-game) "green" "red") this)
+      ;(send mc suspend-flush)
+      ;(send this paint-board-only-changes (send this get-current-game) mc)
+      ;(send this paint-buttons mc)
+      ;(send (send mc get-dc) clear)
+      ;(send mc resume-flush)
+      ;(send mc on-paint)
+      )
     )
+
+  
 
   )
 
