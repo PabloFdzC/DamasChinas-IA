@@ -16,7 +16,7 @@ Salida:
 - Una lista de tableros que representan los movimientos 
 |#
 (define (check-possible-moves board color max-moves)
-  (if (equal? color "red")
+  (if (equal? color "green")
       (check-possible-moves-aux-green board color (sub1 (length board)) '() max-moves)
       (check-possible-moves-aux board color 0 (length board) '() max-moves)
       )
@@ -103,9 +103,7 @@ Salida:
 #|
 check-possible-moves-pos se encarga de obtener todos
 los movimientos posibles de una ficha, es llamada por
-check-possible-moves-aux2, si la ficha es verde, revisa
-los movimientos hacia abajo y si es roja, los movimientos
-hacia arriba
+check-possible-moves-aux2
 Parámetros:
 - board: recibe un tablero (lista de listas de objetos
   cCheckersBox)
@@ -120,51 +118,22 @@ Salida:
   que puede realizar esa ficha
 |#
 (define (check-possible-moves-pos board pos pos2 color moves)
-  (if (equal? color "green")
-      (append moves
-              (if (>= pos 16) 
-                  '()
-                  (if (and (> pos 7) (<= pos 12) (< pos2 (- (length (list-ref board pos)) 8)))
-                      (append (check-move-right board pos pos2 color) (check-move-up-right board pos pos2 color))
-                      (if (< pos2 (- (length (list-ref board pos)) 7))
-                          '()
-                          (check-move-down-left board pos pos2 color))))
-              (if (>= pos 16) 
-                  '()
-                  (if (and (> pos 7) (<= pos 12) (> pos2 8))
-                      (append (check-move-left board pos pos2 color) (check-move-up-left board pos pos2 color))
-                      (if (= pos2 8)
-                          '()
-                          (check-move-down-right board pos pos2 color)))
-                  )
-              (if (or
-                   (and (> pos 7) (<= pos 12) (< pos2 (- (length (list-ref board pos)) 8)))
-                   (and (> pos 7) (<= pos 12) (> pos2 8))
-                   (> pos 12))
-                      '()
-                      (if (empty? (append (check-move-down-left board pos pos2 color) (check-move-down-right board pos pos2 color)))
-                          (append (if (<= pos 0)
-                                      '()
-                                      (append (check-move-up-right board pos pos2 color) (check-move-up-left board pos pos2 color)))
-                                  (if (<= pos2 0)
-                                      '()
-                                      (check-move-left board pos pos2 color))
-                                  (if (>= pos2 (- (length (list-ref board pos)) 1))
-                                      '()
-                                      (check-move-right board pos pos2 color))
-                                  )
-                          '()
-                          )
-                      )
-              )
-      (append moves
-              (if (<= pos 0)
-                  '()
-                  (check-move-up-left board pos pos2 color))
-              (if (<= pos 0)
-                  '()
-                  (check-move-up-right board pos pos2 color))
-   )))
+  (append moves
+   (append(if (= pos 0)
+       '()
+        (check-move-up-left board pos pos2 color))
+   (if (= pos 0)
+       '()
+        (check-move-up-right board pos pos2 color))
+   (check-move-left board pos pos2 color)
+   (check-move-right board pos pos2 color)
+   (if (= pos 16)
+       '()
+        (check-move-down-left board pos pos2 color))
+   (if (= pos 16)
+       '()
+        (check-move-down-right board pos pos2 color)))
+   ))
 
 #|
 check-move-up-left revisa si una ficha se puede mover
@@ -230,9 +199,7 @@ Salida:
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos))))
                   (check-move-up-left-jump board pos pos2 (sub1 pos) pos2 c))
-          (if (< (- (length (list-ref board (sub1 pos))) 1) (+ pos2 4))
-              '()
-              (if ( equal? (send (list-ref (list-ref board (sub1 pos)) (+ pos2 4)) get-color) "white")
+          (if ( equal? (send (list-ref (list-ref board (sub1 pos)) (+ pos2 4)) get-color) "white")
                       (list (append (take board (sub1 pos))
                           (list (append (take (list-ref board (sub1 pos)) (+ pos2 4)) (list (new cCheckersBox%
                                                                 [color c]
@@ -245,8 +212,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos))))
-                      (check-move-up-left-jump board pos pos2 (sub1 pos)(+ pos2 4) c)))
-          )))
+                      (check-move-up-left-jump board pos pos2 (sub1 pos)(+ pos2 4) c)))))
 
 #|
 En caso de que la ficha no pueda moverse hacia arriba
@@ -288,7 +254,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
-                   (sub1 posUp) (sub1 posUp2) c)
+                   (sub1 posUp) (sub1 posUp2) "up-left")
                   '())
               (if (and (> posUp2 4) (< posUp2 9))
                   (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (- posUp2 5)) get-color) "white")
@@ -306,7 +272,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
-                   (sub1 posUp) (- posUp2 5) c)
+                   (sub1 posUp) (- posUp2 5) "up-left")
                       '())
                   '()
                   )))
@@ -326,11 +292,9 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
-                   (sub1 posUp) posUp2 c)
+                   (sub1 posUp) posUp2 "up-left")
                   '())
-          (if (< (- (length (list-ref board (sub1 posUp))) 1) (+ posUp2 4))
-              '()
-              (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 4)) get-color) "white")
+          (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 4)) get-color) "white")
               (check-jumps
                    (append (take board (sub1 posUp))
                           (list (append (take (list-ref board (sub1 posUp)) (+ posUp2 4)) (list (new cCheckersBox%
@@ -345,9 +309,8 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
-                   (sub1 posUp) (+ posUp2 4) c)
-                      '()))
-          )))
+                   (sub1 posUp) (+ posUp2 4) "up-left")
+                      '()))))
 
 #|
 check-move-up-right revisa si una ficha se puede mover
@@ -413,9 +376,7 @@ Salida:
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos))))
                   (check-move-up-right-jump board pos pos2 (sub1 pos) (add1 pos2) c))
-          (if (< (- (length (list-ref board (sub1 pos))) 1) (+ pos2 5))
-              '()
-              (if ( equal? (send (list-ref (list-ref board (sub1 pos)) (+ pos2 5)) get-color) "white")
+          (if ( equal? (send (list-ref (list-ref board (sub1 pos)) (+ pos2 5)) get-color) "white")
                       (list (append (take board (sub1 pos))
                           (list (append (take (list-ref board (sub1 pos)) (+ pos2 5)) (list (new cCheckersBox%
                                                                 [color c]
@@ -428,8 +389,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos))))
-                      (check-move-up-right-jump board pos pos2 (sub1 pos)(+ pos2 5) c)))
-          )))
+                      (check-move-up-right-jump board pos pos2 (sub1 pos)(+ pos2 5) c)))))
 
 
 #|
@@ -472,7 +432,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
-                   (sub1 posUp) posUp2 c)
+                   (sub1 posUp) posUp2 "up-right")
                   '())
               (if (and (> posUp2 3) (< posUp2 8))
                   (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (- posUp2 4)) get-color) "white")
@@ -490,7 +450,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
-                   (sub1 posUp) (- posUp2 4) c)
+                   (sub1 posUp) (- posUp2 4) "up-right")
                       '())
                   '()
                   )))
@@ -510,11 +470,9 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
-                   (sub1 posUp) (add1 posUp2) c)
+                   (sub1 posUp) (add1 posUp2) "up-right")
                   '())
-          (if (< (- (length (list-ref board (sub1 posUp))) 1) (+ posUp2 5))
-              '()
-              (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 5)) get-color) "white")
+          (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 5)) get-color) "white")
               (check-jumps
                    (append (take board (sub1 posUp))
                           (list (append (take (list-ref board (sub1 posUp)) (+ posUp2 5)) (list (new cCheckersBox%
@@ -529,9 +487,8 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
-                   (sub1 posUp) (+ posUp2 5) c)
-                      '()))
-          )))
+                   (sub1 posUp) (+ posUp2 5) "up-right")
+                      '()))))
 
 #|
 check-move-down-left revisa si una ficha se puede mover
@@ -564,9 +521,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 pos)) (sub1 pos2)) get-posY)]))
                                                                 (drop (list-ref board (add1 pos)) pos2)))
                           (drop board (+ pos 2))))
-                  (if (or (= pos 15) (and (= pos 7) (= pos2 1)) (and (> pos 7) (< pos 11) (= pos2 (- (length (list-ref board pos)) 8))))
-                      '()
-                      (check-move-down-left-jump board pos pos2 (add1 pos)(sub1 pos2) c)))
+                  (if (= pos 15) '() (check-move-down-left-jump board pos pos2 (add1 pos)(sub1 pos2) c)))
               (if (and (> pos2 4) (< pos2 9))
                   (if ( equal? (send (list-ref (list-ref board (add1 pos)) (- pos2 5)) get-color) "white")
                       (list (append (take board pos)
@@ -581,9 +536,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 pos)) (- pos2 5)) get-posY)]))
                                                                 (drop (list-ref board (add1 pos)) (- pos2 4))))
                           (drop board (+ pos 2))))
-                      (if (or (= pos 15) (and (= pos 7) (= pos2 1)) (and (> pos 7) (< pos 11) (= pos2 (- (length (list-ref board pos)) 8))))
-                          '()
-                          (check-move-down-left-jump board pos pos2 (add1 pos)(- pos2 5) c)))
+                      (if (= pos 15) '() (check-move-down-left-jump board pos pos2 (add1 pos)(- pos2 5) c)))
                   '()
                   )))
       (if (= (- (length (list-ref board (add1 pos))) (length (list-ref board pos))) 1)
@@ -600,12 +553,8 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 pos)) pos2) get-posY)]))
                                                                 (drop (list-ref board (add1 pos)) (add1 pos2))))
                           (drop board (+ pos 2))))
-                  (if (or (= pos 15) (and (= pos 7) (= pos2 1)) (and (> pos 7) (< pos 11) (= pos2 (- (length (list-ref board pos)) 8))))
-                      '()
-                      (check-move-down-left-jump board pos pos2 (add1 pos) pos2 c)))
-          (if (< (- (length (list-ref board (add1 pos))) 1) (+ pos2 4))
-              '()
-              (if ( equal? (send (list-ref (list-ref board (add1 pos)) (+ pos2 4)) get-color) "white")
+                  (check-move-down-left-jump board pos pos2 (add1 pos) pos2 c))
+          (if ( equal? (send (list-ref (list-ref board (add1 pos)) (+ pos2 4)) get-color) "white")
                       (list (append (take board pos)
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
@@ -618,10 +567,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 pos)) (+ pos2 4)) get-posY)]))
                                                                 (drop (list-ref board (add1 pos)) (+ pos2 5))))
                           (drop board (+ pos 2))))
-                      (if (or (= pos 15) (and (= pos 7) (= pos2 1)) (and (> pos 7) (< pos 11) (= pos2 (- (length (list-ref board pos)) 8))))
-                          '()
-                          (check-move-down-left-jump board pos pos2 (add1 pos)(+ pos2 4) c))))
-          )))
+                      (check-move-down-left-jump board pos pos2 (add1 pos)(+ pos2 4) c)))))
 
 
 #|
@@ -664,7 +610,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 posDown)) (sub1 posDown2)) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) posDown2)))
                           (drop board (+ posDown 2)))
-                   (add1 posDown) (sub1 posDown2) c)
+                   (add1 posDown) (sub1 posDown2) "down-left")
                   '())
               (if (and (> posDown2 4) (< posDown2 9))
                   (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (- posDown2 5)) get-color) "white")
@@ -682,7 +628,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 posDown)) (- posDown2 5)) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) (- posDown2 4))))
                           (drop board (+ posDown 2)))
-                   (add1 posDown) (- posDown2 5) c)
+                   (add1 posDown) (- posDown2 5) "down-left")
                       '())
                   '()
                   )))
@@ -702,11 +648,9 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 posDown)) posDown2) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) (add1 posDown2))))
                           (drop board (+ posDown 2)))
-                   (add1 posDown) posDown2 c)
+                   (add1 posDown) posDown2 "down-left")
                   '())
-          (if (< (- (length (list-ref board (add1 posDown))) 1) (+ posDown2 4))
-              '()
-              (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 4)) get-color) "white")
+          (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 4)) get-color) "white")
               (check-jumps
                    (append (take board pos)
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
@@ -721,9 +665,8 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 4)) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) (+ posDown2 5))))
                           (drop board (+ posDown 2)))
-                   (add1 posDown) (+ posDown2 4) c)
-                      '()))
-          )))
+                   (add1 posDown) (+ posDown2 4) "down-left")
+                      '()))))
 
 #|
 check-move-down-right revisa si una ficha se puede mover
@@ -756,7 +699,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 pos)) pos2) get-posY)]))
                                                                 (drop (list-ref board (add1 pos)) (add1 pos2))))
                           (drop board (+ pos 2))))
-                  (if (or (= pos 15) (and (= pos 7) (= pos2 8)) (and (> pos 7) (< pos 11) (= pos2 7))) '() (check-move-down-right-jump board pos pos2 (add1 pos) pos2 c)))
+                  (if (= pos 15) '() (check-move-down-right-jump board pos pos2 (add1 pos) pos2 c)))
               (if (and (> pos2 3) (< pos2 8))
                   (if ( equal? (send (list-ref (list-ref board (add1 pos)) (- pos2 4)) get-color) "white")
                       (list (append (take board pos)
@@ -771,7 +714,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 pos)) (- pos2 4)) get-posY)]))
                                                                 (drop (list-ref board (add1 pos)) (- pos2 3))))
                           (drop board (+ pos 2))))
-                      (if (or (= pos 15) (and (= pos 7) (= pos2 8)) (and (> pos 7) (< pos 11) (= pos2 7))) '() (check-move-down-right-jump board pos pos2 (add1 pos)(- pos2 4) c)))
+                      (if (= pos 15) '() (check-move-down-right-jump board pos pos2 (add1 pos)(- pos2 4) c)))
                   '()
                   )))
       (if (= (- (length (list-ref board (add1 pos))) (length (list-ref board pos))) 1)
@@ -788,10 +731,8 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 pos)) (add1 pos2)) get-posY)]))
                                                                 (drop (list-ref board (add1 pos)) (+ pos2 2))))
                           (drop board (+ pos 2))))
-                  (if (or (= pos 15) (and (= pos 7) (= pos2 8)) (and (> pos 7) (< pos 11) (= pos2 7))) '()(check-move-down-right-jump board pos pos2 (add1 pos) (add1 pos2) c)))
-          (if (< (- (length (list-ref board (add1 pos))) 1) (+ pos2 5))
-              '()
-              (if ( equal? (send (list-ref (list-ref board (add1 pos)) (+ pos2 5)) get-color) "white")
+                  (check-move-down-right-jump board pos pos2 (add1 pos) (add1 pos2) c))
+          (if ( equal? (send (list-ref (list-ref board (add1 pos)) (+ pos2 5)) get-color) "white")
                       (list (append (take board pos)
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
                                                                 [color "white"]
@@ -804,8 +745,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 pos)) (+ pos2 5)) get-posY)]))
                                                                 (drop (list-ref board (add1 pos)) (+ pos2 6))))
                           (drop board (+ pos 2))))
-                      (if (or (= pos 15) (and (= pos 7) (= pos2 8)) (and (> pos 7) (< pos 11) (= pos2 7))) '() (check-move-down-right-jump board pos pos2 (add1 pos)(+ pos2 5) c))))
-          )))
+                      (check-move-down-right-jump board pos pos2 (add1 pos)(+ pos2 5) c)))))
 
 #|
 En caso de que la ficha no pueda moverse hacia abajo
@@ -847,7 +787,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 posDown)) posDown2) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) (add1 posDown2))))
                           (drop board (+ posDown 2)))
-                   (add1 posDown) posDown2 c)
+                   (add1 posDown) posDown2 "down-right")
                   '())
               (if (and (> posDown2 3) (< posDown2 8))
                   (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (- posDown2 4)) get-color) "white")
@@ -865,7 +805,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 posDown)) (- posDown2 4)) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) (- posDown2 3))))
                           (drop board (+ posDown 2)))
-                   (add1 posDown) (- posDown2 4) c)
+                   (add1 posDown) (- posDown2 4) "down-right")
                       '())
                   '()
                   )))
@@ -885,11 +825,9 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 posDown)) (add1 posDown2)) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) (+ posDown2 2))))
                           (drop board (+ posDown 2)))
-                   (add1 posDown) (add1 posDown2) c)
+                   (add1 posDown) (add1 posDown2) "down-right")
                   '())
-          (if (< (- (length (list-ref board (add1 posDown))) 1) (+ posDown2 5))
-              '()
-              (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 5)) get-color) "white")
+          (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 5)) get-color) "white")
               (check-jumps
                    (append (take board pos)
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
@@ -904,12 +842,11 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 5)) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) (+ posDown2 6))))
                           (drop board (+ posDown 2)))
-                   (add1 posDown) (+ posDown2 5) c)
-                      '()))
-          )))
+                   (add1 posDown) (+ posDown2 5) "down-right")
+                      '()))))
 
 #|
-check-move-left revisa si una ficha se puede mover
+check-move-down-right revisa si una ficha se puede mover
 hacia la izquierda y si no fuera el caso si puede realizar
 un salto hacia este lado
 Parámetros:
@@ -955,11 +892,11 @@ Salida:
                   (drop board (add1 pos)))
                    pos
                    (- pos2 2)
-                   c)
+                   "left")
                   '())))))
 
 #|
-check-move-right revisa si una ficha se puede mover
+check-move-down-right revisa si una ficha se puede mover
 hacia la derecha y si no fuera el caso si puede realizar
 un salto hacia este lado
 Parámetros:
@@ -1005,7 +942,7 @@ Salida:
                   (drop board (add1 pos)))
                    pos
                    (+ pos2 2)
-                   c)
+                   "right")
                   '()
                   )
               )
@@ -1031,13 +968,15 @@ Salida:
 - Una lista de movimientos que puede hacer a
   través de saltos
 |#
-(define (check-jumps board pos pos2 color)
+(define (check-jumps board pos pos2 direction)
   (append
-   (if (or (>= pos 15) (equal? color "red") (and (= pos 7) (= pos2 1)) (and (> pos 7) (< pos 11) (= pos2 (- (length (list-ref board pos)) 8)))) '() (check-jump-down-left board pos pos2 color))
-   (if (or (>= pos 15) (equal? color "red") (and (= pos 7) (= pos2 8)) (and (> pos 7) (< pos 11) (= pos2 7))) '() (check-jump-down-right board pos pos2 color))
-   (if (or (<= pos 1) (equal? color "green")) '() (check-jump-up-left board pos pos2 color))
-   (if (or (<= pos 1) (equal? color "green")) '() (check-jump-up-right board pos pos2 color))
-   (list board))
+   (list board)
+   (if (or (>= pos 15) (equal? direction "up-right")) '() (check-jump-down-left board pos pos2))
+   (if (or (>= pos 15) (equal? direction "up-left")) '() (check-jump-down-right board pos pos2))
+   (if (or (<= pos 1) (equal? direction "down-right")) '() (check-jump-up-left board pos pos2))
+   (if (or (<= pos 1) (equal? direction "down-left")) '() (check-jump-up-right board pos pos2))
+   (if (or (<= pos2 1) (equal? direction "right")) '() (check-jump-left board pos pos2))
+   (if (or (>= pos2 (- (length (list-ref board pos)) 2)) (equal? direction "left")) '() (check-jump-right board pos pos2)))
   )
 
 #|
@@ -1052,7 +991,7 @@ Salida:
 - Una lista de movimientos que puede hacer a
   través de saltos
 |#
-(define (check-jump-down-left board pos pos2 color)
+(define (check-jump-down-left board pos pos2)
   (if (< (length (list-ref board (add1 pos))) (length (list-ref board pos)))
       (if (= pos2 0)
           '()
@@ -1060,24 +999,21 @@ Salida:
               (if (or (= pos 15)
                       (equal? (send (list-ref (list-ref board (add1 pos)) (sub1 pos2)) get-color) "white")) 
                   '()
-                  (check-jump-down-left-aux board (add1 pos)(sub1 pos2) pos pos2 color))
+                  (check-jump-down-left-aux board (add1 pos)(sub1 pos2) pos pos2))
               (if (and (> pos2 4) (< pos2 9))
                   (if (or (= pos 15)
                           (equal? (send (list-ref (list-ref board (add1 pos)) (- pos2 5)) get-color) "white"))
                       '()
-                      (check-jump-down-left-aux board (add1 pos)(- pos2 5) pos pos2 color))
+                      (check-jump-down-left-aux board (add1 pos)(- pos2 5) pos pos2))
                   '()
                   )))
       (if (= (- (length (list-ref board (add1 pos))) (length (list-ref board pos))) 1)
           (if ( equal? (send (list-ref (list-ref board (add1 pos)) pos2) get-color) "white")
                   '()
-                  (check-jump-down-left-aux board (add1 pos) pos2 pos pos2 color))
-          (if (< (- (length (list-ref board (add1 pos))) 1) (+ pos2 4))
-              '()
-              (if ( equal? (send (list-ref (list-ref board (add1 pos)) (+ pos2 4)) get-color) "white")
+                  (check-jump-down-left-aux board (add1 pos) pos2 pos pos2))
+          (if ( equal? (send (list-ref (list-ref board (add1 pos)) (+ pos2 4)) get-color) "white")
                       '()
-                      (check-jump-down-left-aux board (add1 pos)(+ pos2 4) pos pos2 color)))
-          )))
+                      (check-jump-down-left-aux board (add1 pos)(+ pos2 4) pos pos2)))))
 
 #|
 check-jump-down-left-aux es usada por check-jump-down-left
@@ -1096,7 +1032,7 @@ Salida:
 - Una lista de movimientos que puede hacer a
   través de saltos
 |#
-(define (check-jump-down-left-aux board posDown posDown2 pos pos2 c)
+(define (check-jump-down-left-aux board posDown posDown2 pos pos2)
   (if (< (length (list-ref board (add1 posDown))) (length (list-ref board posDown)))
       (if (= posDown2 0)
           '()
@@ -1116,7 +1052,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 posDown)) (sub1 posDown2)) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) posDown2)))
                           (drop board (+ posDown 2)))
-                   (add1 posDown) (sub1 posDown2) c)
+                   (add1 posDown) (sub1 posDown2) "down-left")
                   '())
               (if (and (> posDown2 4) (< posDown2 9))
                   (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (- posDown2 5)) get-color) "white")
@@ -1134,7 +1070,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 posDown)) (- posDown2 5)) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) (- posDown2 4))))
                           (drop board (+ posDown 2)))
-                       (add1 posDown) (- posDown2 5) c)
+                       (add1 posDown) (- posDown2 5) "down-left")
                       '())
                   '()
                   )))
@@ -1154,11 +1090,9 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 posDown)) posDown2) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) (add1 posDown2))))
                           (drop board (+ posDown 2)))
-                       (add1 posDown) posDown2 c)
+                       (add1 posDown) posDown2 "down-left")
                   '())
-          (if (< (- (length (list-ref board (add1 posDown))) 1) (+ posDown2 4))
-              '()
-              (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 4)) get-color) "white")
+          (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 4)) get-color) "white")
                       (check-jumps
                        (append (take board pos)
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
@@ -1173,9 +1107,8 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 4)) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) (+ posDown2 5))))
                           (drop board (+ posDown 2)))
-                       (add1 posDown) (+ posDown2 4) c)
-                      '()))
-          )))
+                       (add1 posDown) (+ posDown2 4) "down-left")
+                      '()))))
 
 #|
 check-jump-down-right revisa si una casilla puede realizar
@@ -1189,30 +1122,27 @@ Salida:
 - Una lista de movimientos que puede hacer a
   través de saltos
 |#
-(define (check-jump-down-right board pos pos2 color)
+(define (check-jump-down-right board pos pos2)
   (if (< (length (list-ref board (add1 pos))) (length (list-ref board pos)))
       (if (= pos2 (- (length (list-ref board pos)) 1))
           '()
           (if (= (- (length (list-ref board pos)) (length (list-ref board (add1 pos)))) 1)
               (if (or (>= pos 15) ( equal? (send (list-ref (list-ref board (add1 pos)) pos2) get-color) "white"))
                   '()
-                  (check-jump-down-right-aux board (add1 pos) pos2 pos pos2 color))
+                  (check-jump-down-right-aux board (add1 pos) pos2 pos pos2))
               (if (and (> pos2 3) (< pos2 8))
                   (if (or (>= pos 15) ( equal? (send (list-ref (list-ref board (add1 pos)) (- pos2 4)) get-color) "white"))
                       '()
-                      (check-jump-down-right-aux board (add1 pos)(- pos2 4) pos pos2 color))
+                      (check-jump-down-right-aux board (add1 pos)(- pos2 4) pos pos2))
                   '()
                   )))
       (if (= (- (length (list-ref board (add1 pos))) (length (list-ref board pos))) 1)
           (if ( equal? (send (list-ref (list-ref board (add1 pos)) (add1 pos2)) get-color) "white")
                   '()
-                  (check-jump-down-right-aux board (add1 pos) (add1 pos2) pos pos2 color))
-          (if (< (- (length (list-ref board (add1 pos))) 1) (+ pos2 5))
-              '()
-              (if ( equal? (send (list-ref (list-ref board (add1 pos)) (+ pos2 5)) get-color) "white")
+                  (check-jump-down-right-aux board (add1 pos) (add1 pos2) pos pos2))
+          (if ( equal? (send (list-ref (list-ref board (add1 pos)) (+ pos2 5)) get-color) "white")
                       '()
-                      (check-jump-down-right-aux board (add1 pos)(+ pos2 5) pos pos2 color)))
-          ))
+                      (check-jump-down-right-aux board (add1 pos)(+ pos2 5) pos pos2))))
   )
 
 #|
@@ -1232,7 +1162,7 @@ Salida:
 - Una lista de movimientos que puede hacer a
   través de saltos
 |#
-(define (check-jump-down-right-aux board posDown posDown2 pos pos2 c)
+(define (check-jump-down-right-aux board posDown posDown2 pos pos2)
   (if (< (length (list-ref board (add1 posDown))) (length (list-ref board posDown)))
       (if (= posDown2 (- (length (list-ref board posDown)) 1))
           '()
@@ -1252,7 +1182,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 posDown)) posDown2) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) (add1 posDown2))))
                           (drop board (+ posDown 2)))
-                       (add1 posDown) posDown2 c)
+                       (add1 posDown) posDown2 "down-right")
                   '())
               (if (and (> posDown2 3) (< posDown2 8))
                   (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (- posDown2 4)) get-color) "white")
@@ -1270,7 +1200,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 posDown)) (- posDown2 4)) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) (- posDown2 3))))
                           (drop board (+ posDown 2)))
-                       (add1 posDown) (- posDown2 4) c)
+                       (add1 posDown) (- posDown2 4) "down-right")
                       '())
                   '()
                   )))
@@ -1290,11 +1220,9 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 posDown)) (add1 posDown2)) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) (+ posDown2 2))))
                           (drop board (+ posDown 2)))
-                       (add1 posDown) (add1 posDown2) c)
+                       (add1 posDown) (add1 posDown2) "down-right")
                   '())
-          (if (< (- (length (list-ref board (add1 posDown))) 1) (+ posDown2 5))
-              '()
-              (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 5)) get-color) "white")
+          (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 5)) get-color) "white")
                       (check-jumps
                        (append (take board pos)
                           (list (append (take (list-ref board pos) pos2) (list (new cCheckersBox%
@@ -1309,9 +1237,8 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 5)) get-posY)]))
                                                                 (drop (list-ref board (add1 posDown)) (+ posDown2 6))))
                           (drop board (+ posDown 2)))
-                       (add1 posDown) (+ posDown2 5) c)
-                      '()))
-          )))
+                       (add1 posDown) (+ posDown2 5) "down-right")
+                      '()))))
 
 #|
 check-jump-up-left revisa si una casilla puede realizar
@@ -1325,30 +1252,27 @@ Salida:
 - Una lista de movimientos que puede hacer a
   través de saltos
 |#
-(define (check-jump-up-left board pos pos2 color)
+(define (check-jump-up-left board pos pos2)
   (if (< (length (list-ref board (sub1 pos))) (length (list-ref board pos)))
       (if (= pos2 0)
           '()
           (if (= (- (length (list-ref board pos)) (length (list-ref board (sub1 pos)))) 1)
               (if (or (= pos 1) ( equal? (send (list-ref (list-ref board (sub1 pos)) (sub1 pos2)) get-color) "white"))
                   '()
-                  (check-jump-up-left-aux board (sub1 pos)(sub1 pos2) pos pos2 color))
+                  (check-jump-up-left-aux board (sub1 pos)(sub1 pos2) pos pos2))
               (if (and (> pos2 4) (< pos2 9))
                   (if (or (= pos 1) ( equal? (send (list-ref (list-ref board (sub1 pos)) (- pos2 5)) get-color) "white"))
                       '()
-                      (check-jump-up-left-aux board (sub1 pos)(- pos2 5) pos pos2 color))
+                      (check-jump-up-left-aux board (sub1 pos)(- pos2 5) pos pos2))
                   '()
                   )))
       (if (= (- (length (list-ref board (sub1 pos))) (length (list-ref board pos))) 1)
           (if ( equal? (send (list-ref (list-ref board (sub1 pos)) pos2) get-color) "white")
                   '()
-                  (check-jump-up-left-aux board (sub1 pos) pos2 pos pos2 color))
-          (if (< (- (length (list-ref board (sub1 pos))) 1) (+ pos2 4))
-              '()
-              (if ( equal? (send (list-ref (list-ref board (sub1 pos)) (+ pos2 4)) get-color) "white")
+                  (check-jump-up-left-aux board (sub1 pos) pos2 pos pos2))
+          (if ( equal? (send (list-ref (list-ref board (sub1 pos)) (+ pos2 4)) get-color) "white")
                       '()
-                      (check-jump-up-left-aux board (sub1 pos)(+ pos2 4) pos pos2 color)))
-          )))
+                      (check-jump-up-left-aux board (sub1 pos)(+ pos2 4) pos pos2)))))
 
 #|
 check-jump-up-left-aux es usada por check-jump-up-left
@@ -1367,7 +1291,7 @@ Salida:
 - Una lista de movimientos que puede hacer a
   través de saltos
 |#
-(define (check-jump-up-left-aux board posUp posUp2 pos pos2 c)
+(define (check-jump-up-left-aux board posUp posUp2 pos pos2)
   (if (< (length (list-ref board (sub1 posUp))) (length (list-ref board posUp)))
       (if (= posUp2 0)
           '()
@@ -1387,7 +1311,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
-                       (sub1 posUp) (sub1 posUp2) c)
+                       (sub1 posUp) (sub1 posUp2) "up-left")
                   '())
               (if (and (> posUp2 4) (< posUp2 9))
                   (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (- posUp2 5)) get-color) "white")
@@ -1405,7 +1329,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
-                       (sub1 posUp) (- posUp2 5) c)
+                       (sub1 posUp) (- posUp2 5) "up-left")
                       '())
                   '()
                   )))
@@ -1425,11 +1349,9 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
-                       (sub1 posUp) posUp2 c)
+                       (sub1 posUp) posUp2 "up-left")
                   '())
-          (if (< (- (length (list-ref board (sub1 posUp))) 1) (+ posUp2 4))
-              '()
-              (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 4)) get-color) "white")
+          (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 4)) get-color) "white")
                       (check-jumps
                        (append (take board (sub1 posUp))
                           (list (append (take (list-ref board (sub1 posUp)) (+ posUp2 4)) (list (new cCheckersBox%
@@ -1444,9 +1366,8 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
-                       (sub1 posUp) (+ posUp2 4) c)
-                      '()))
-          )))
+                       (sub1 posUp) (+ posUp2 4) "up-left")
+                      '()))))
 
 #|
 check-jump-up-right revisa si una casilla puede realizar
@@ -1460,30 +1381,27 @@ Salida:
 - Una lista de movimientos que puede hacer a
   través de saltos
 |#
-(define (check-jump-up-right board pos pos2 color)
+(define (check-jump-up-right board pos pos2)
   (if (< (length (list-ref board (sub1 pos))) (length (list-ref board pos)))
       (if (= pos2 (- (length (list-ref board pos)) 1))
           '()
           (if (= (- (length (list-ref board pos)) (length (list-ref board (sub1 pos)))) 1)
               (if (or (= pos 1) ( equal? (send (list-ref (list-ref board (sub1 pos)) pos2) get-color) "white"))
                   '()
-                  (check-jump-up-right-aux board (sub1 pos) pos2 pos pos2 color))
+                  (check-jump-up-right-aux board (sub1 pos) pos2 pos pos2))
               (if (and (> pos2 3) (< pos2 8))
                   (if (or (= pos 1) ( equal? (send (list-ref (list-ref board (sub1 pos)) (- pos2 4)) get-color) "white"))
                       '()
-                      (check-jump-up-right-aux board (sub1 pos)(- pos2 4) pos pos2 color))
+                      (check-jump-up-right-aux board (sub1 pos)(- pos2 4) pos pos2))
                   '()
                   )))
       (if (= (- (length (list-ref board (sub1 pos))) (length (list-ref board pos))) 1)
           (if ( equal? (send (list-ref (list-ref board (sub1 pos)) (add1 pos2)) get-color) "white")
                   '()
-                  (check-jump-up-right-aux board (sub1 pos) (add1 pos2) pos pos2 color))
-          (if (< (- (length (list-ref board (sub1 pos))) 1) (+ pos2 5))
-              '()
-              (if ( equal? (send (list-ref (list-ref board (sub1 pos)) (+ pos2 5)) get-color) "white")
+                  (check-jump-up-right-aux board (sub1 pos) (add1 pos2) pos pos2))
+          (if ( equal? (send (list-ref (list-ref board (sub1 pos)) (+ pos2 5)) get-color) "white")
                       '()
-                      (check-jump-up-right-aux board (sub1 pos)(+ pos2 5) pos pos2 color)))
-          )))
+                      (check-jump-up-right-aux board (sub1 pos)(+ pos2 5) pos pos2)))))
 
 #|
 check-jump-up-right-aux es usada por check-jump-up-right
@@ -1502,7 +1420,7 @@ Salida:
 - Una lista de movimientos que puede hacer a
   través de saltos
 |#
-(define (check-jump-up-right-aux board posUp posUp2 pos pos2 c)
+(define (check-jump-up-right-aux board posUp posUp2 pos pos2)
   (if (< (length (list-ref board (sub1 posUp))) (length (list-ref board posUp)))
       (if (= posUp2 (- (length (list-ref board posUp)) 1))
           '()
@@ -1522,7 +1440,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
-                       (sub1 posUp) posUp2 c)
+                       (sub1 posUp) posUp2 "up-right")
                   '())
               (if (and (> posUp2 3) (< posUp2 8))
                   (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (- posUp2 4)) get-color) "white")
@@ -1540,7 +1458,7 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
-                       (sub1 posUp) (- posUp2 4) c)
+                       (sub1 posUp) (- posUp2 4) "up-right")
                       '())
                   '()
                   )))
@@ -1560,11 +1478,9 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
-                       (sub1 posUp) (add1 posUp2) c)
+                       (sub1 posUp) (add1 posUp2) "up-right")
                   '())
-          (if (< (- (length (list-ref board (sub1 posUp))) 1) (+ posUp2 5))
-              '()
-              (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 5)) get-color) "white")
+          (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 5)) get-color) "white")
                       (check-jumps
                        (append (take board (sub1 posUp))
                           (list (append (take (list-ref board (sub1 posUp)) (+ posUp2 5)) (list (new cCheckersBox%
@@ -1579,9 +1495,8 @@ Salida:
                                                                 [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                                                 (drop (list-ref board pos) (add1 pos2))))
                           (drop board (add1 pos)))
-                       (sub1 posUp) (+ posUp2 5) c)
-                      '()))
-          )))
+                       (sub1 posUp) (+ posUp2 5) "up-right")
+                      '()))))
 
 #|
 check-jump-left revisa si una casilla puede realizar
@@ -1595,7 +1510,7 @@ Salida:
 - Una lista de movimientos que puede hacer a
   través de saltos
 |#
-(define (check-jump-left board pos pos2 c)
+(define (check-jump-left board pos pos2)
   (if (or (= pos2 0) (= pos2 1))
       '()
       (if ( equal? (send (list-ref (list-ref board pos) (sub1 pos2)) get-color) "white")
@@ -1614,7 +1529,7 @@ Salida:
                                                                                      [posY (send (list-ref (list-ref board pos) pos2) get-posY)]))
                                 (drop (list-ref board pos) (add1 pos2))))
                   (drop board (add1 pos)))
-               pos (- pos2 2) c)
+               pos (- pos2 2) "left")
               '()
               )
           )
@@ -1634,7 +1549,7 @@ Salida:
 - Una lista de movimientos que puede hacer a
   través de saltos
 |#
-(define (check-jump-right board pos pos2 c)
+(define (check-jump-right board pos pos2)
   (if (or (= pos2 (- (length (list-ref board pos)) 1)) (= pos2 (- (length (list-ref board pos)) 2)))
       '()
       (if ( equal? (send (list-ref (list-ref board pos) (add1 pos2)) get-color) "white")
@@ -1653,7 +1568,7 @@ Salida:
                                                                                      [posY (send (list-ref (list-ref board pos) (+ pos2 2)) get-posY)]))
                                 (drop (list-ref board pos) (+ pos2 3))))
                   (drop board (add1 pos)))
-               pos (+ pos2 2) c)
+               pos (+ pos2 2) "right")
               '()
               )
           )
@@ -1672,12 +1587,7 @@ Salida:
 - El valor de la posición del tablero
 |#
 (define (eval board)
-  (if (won-green board)
-      100000000
-      (if (won-red board)
-          -100000000
-          (- (+ (eval-aux board 0 (length board) 0) (count-green-final board)) (count-red-final board))))
-  )
+  (eval-aux board 0 (length board) 0))
 
 
 #|
@@ -1762,9 +1672,7 @@ Salida:
 |#
 
 (define (check-jumps-green-pos board pos pos2)
-  (if (>= pos 15)
-      0
-      (+ (check-if-jump-down-left board pos pos2) (check-if-jump-down-right board pos pos2))))
+  (+ (check-if-jump-down-left board pos pos2) (check-if-jump-down-right board pos pos2)))
 
 #|
 check-distance-green-pos se encarga de revisar
@@ -1801,9 +1709,7 @@ Salida:
 - El valor obtenido por los saltos
 |#
 (define (check-jumps-red-pos board pos pos2)
-  (if (<= pos 1)
-      0
-      (+ (check-if-jump-up-left board pos pos2) (check-if-jump-up-right board pos pos2))))
+  (+ (check-if-jump-up-left board pos pos2) (check-if-jump-up-right board pos pos2)))
 
 #|
 check-if-jump-down-left revisa si una casilla puede realizar
@@ -1837,12 +1743,9 @@ Salida:
           (if ( equal? (send (list-ref (list-ref board (add1 pos)) pos2) get-color) "white")
                   0
                   (check-if-jump-down-left-aux board (add1 pos) pos2))
-          (if (< (- (length (list-ref board (add1 pos))) 1) (+ pos2 4))
-              0
-              (if ( equal? (send (list-ref (list-ref board (add1 pos)) (+ pos2 4)) get-color) "white")
+          (if ( equal? (send (list-ref (list-ref board (add1 pos)) (+ pos2 4)) get-color) "white")
                       0
-                      (check-if-jump-down-left-aux board (add1 pos)(+ pos2 4))))
-          )))
+                      (check-if-jump-down-left-aux board (add1 pos)(+ pos2 4))))))
 
 #|
 check-if-jump-down-left-aux es usada por check-if-jump-down-left
@@ -1876,12 +1779,9 @@ Salida:
           (if ( equal? (send (list-ref (list-ref board (add1 posDown)) posDown2) get-color) "white")
                   (+ 10 (check-jumps-green-pos board (add1 posDown) posDown2))
                   0)
-          (if (< (- (length (list-ref board (add1 posDown))) 1) (+ posDown2 4))
-              0
-              (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 4)) get-color) "white")
+          (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 4)) get-color) "white")
                       (+ 10 (check-jumps-green-pos board (add1 posDown) (+ posDown2 4)))
-                      0))
-          )))
+                      0))))
 
 #|
 check-if-jump-down-right revisa si una casilla puede realizar
@@ -1912,12 +1812,9 @@ Salida:
           (if ( equal? (send (list-ref (list-ref board (add1 pos)) (add1 pos2)) get-color) "white")
                   0
                   (check-if-jump-down-right-aux board (add1 pos) (add1 pos2)))
-          (if (< (- (length (list-ref board (add1 pos))) 1) (+ pos2 5))
-              0
-              (if ( equal? (send (list-ref (list-ref board (add1 pos)) (+ pos2 5)) get-color) "white")
+          (if ( equal? (send (list-ref (list-ref board (add1 pos)) (+ pos2 5)) get-color) "white")
                       0
-                      (check-if-jump-down-right-aux board (add1 pos)(+ pos2 5))))
-          )))
+                      (check-if-jump-down-right-aux board (add1 pos)(+ pos2 5))))))
 
 #|
 check-if-jump-down-right-aux es usada por check-if-jump-down-right
@@ -1951,12 +1848,9 @@ Salida:
           (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (add1 posDown2)) get-color) "white")
                   (+ 10 (check-jumps-green-pos board (add1 posDown) (add1 posDown2)))
                   0)
-          (if (< (- (length (list-ref board (add1 posDown))) 1) (+ posDown2 5))
-              0
-              (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 5)) get-color) "white")
+          (if ( equal? (send (list-ref (list-ref board (add1 posDown)) (+ posDown2 5)) get-color) "white")
                       (+ 10 (check-jumps-green-pos board (add1 posDown) (+ posDown2 5)))
-                      0))
-          )))
+                      0))))
 
 #|
 check-if-jump-up-left revisa si una casilla puede realizar
@@ -1987,12 +1881,9 @@ Salida:
           (if ( equal? (send (list-ref (list-ref board (sub1 pos)) pos2) get-color) "white")
                   0
                   (check-if-jump-up-left-aux board (sub1 pos) pos2))
-          (if (< (- (length (list-ref board (sub1 pos))) 1) (+ pos2 4))
-              0
-              (if ( equal? (send (list-ref (list-ref board (sub1 pos)) (+ pos2 4)) get-color) "white")
+          (if ( equal? (send (list-ref (list-ref board (sub1 pos)) (+ pos2 4)) get-color) "white")
                       0
-                      (check-if-jump-up-left-aux board (sub1 pos)(+ pos2 4))))
-          )))
+                      (check-if-jump-up-left-aux board (sub1 pos)(+ pos2 4))))))
 
 #|
 check-if-jump-up-left-aux es usada por check-if-jump-up-left
@@ -2026,12 +1917,9 @@ Salida:
           (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) posUp2) get-color) "white")
                   (+ 10 (check-jumps-red-pos board (sub1 posUp) posUp2))
                   0)
-          (if (< (- (length (list-ref board (sub1 posUp))) 1) (+ posUp2 4))
-              0
-              (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 4)) get-color) "white")
+          (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 4)) get-color) "white")
                       (+ 10 (check-jumps-red-pos board (sub1 posUp) (+ posUp2 4)))
-                      0))
-          )))
+                      0))))
 
 #|
 check-if-jump-up-right revisa si una casilla puede realizar
@@ -2062,13 +1950,9 @@ Salida:
           (if ( equal? (send (list-ref (list-ref board (sub1 pos)) (add1 pos2)) get-color) "white")
                   0
                   (check-if-jump-up-right-aux board (sub1 pos) (add1 pos2)))
-          (if (< (- (length (list-ref board (sub1 pos))) 1) (+ pos2 5))
-              0
-              (if ( equal? (send (list-ref (list-ref board (sub1 pos)) (+ pos2 5)) get-color) "white")
+          (if ( equal? (send (list-ref (list-ref board (sub1 pos)) (+ pos2 5)) get-color) "white")
                       0
-                      (check-if-jump-up-right-aux board (sub1 pos)(+ pos2 5)))
-              )
-          )))
+                      (check-if-jump-up-right-aux board (sub1 pos)(+ pos2 5))))))
 
 #|
 check-if-jump-up-right-aux es usada por check-if-jump-up-right
@@ -2102,231 +1986,9 @@ Salida:
           (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (add1 posUp2)) get-color) "white")
                   (+ 10 (check-jumps-red-pos board (sub1 posUp) (add1 posUp2)))
                   0)
-          (if (< (- (length (list-ref board (sub1 posUp))) 1) (+ posUp2 5))
-              0
-              (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 5)) get-color) "white")
+          (if ( equal? (send (list-ref (list-ref board (sub1 posUp)) (+ posUp2 5)) get-color) "white")
                       (+ 10 (check-jumps-red-pos board (sub1 posUp) (+ posUp2 5)))
-                      0))
-          )))
-
-#|
-final-position revisa si el tablero está en posición final,
-es decir, si alguno de los jugadores ya ganó
-- board: recibe un tablero (lista de listas de objetos
-  cCheckersBox)
-Salida:
-- true si está en posición final, y false si no
-|#
-
-(define (final-position board)
-  (or (won-green board) (won-red board)))
-
-#|
-won-green revisa si el jugador de fichas verdes ganó
-o no
-- board: recibe un tablero (lista de listas de objetos
-  cCheckersBox)
-Salida:
-- true si el jugador ganó y false si no
-|#
-(define (won-green board)
-  (won-green-aux board (sub1 (length board)) #t)
-  )
-
-#|
-won-green-aux es usado por won-green para
-recorrer las filas de abajo del tablero para ver si
-son verdes
-- board: recibe un tablero (lista de listas de objetos
-  cCheckersBox)
-- pos: la fila que se está revisando
-- result: el resultado que se lleva hasta el momento
-Salida:
-- true si todas las fichas que se han encontrado son
-  verdes y false si se encuentra alguna que no lo es
-|#
-(define (won-green-aux board pos result)
-  (if result
-      (if (< pos 13)
-          #t
-          (won-green-aux board (sub1 pos) (won-green-aux2 board pos 0 (length (list-ref board pos)))))
-      #f))
-
-#|
-won-green-aux2 es usado por won-green-aux para
-recorrer las casillas de cada fila para ver si
-son verdes
-- board: recibe un tablero (lista de listas de objetos
-  cCheckersBox)
-- pos: la fila que se está revisando
-- max: el número de columnas de la fila
-Salida:
-- true si todas las fichas que se han encontrado son
-  verdes y false si se encuentra alguna que no lo es
-|#
-(define (won-green-aux2 board pos pos2 max)
-  (if (>= pos2 max)
-      #t
-      (if ( equal? (send (list-ref (list-ref board pos) pos2) get-color) "green")
-                      (won-green-aux2 board pos (add1 pos2) max)
-                      #f))
-  )
-
-#|
-won-red revisa si el jugador de fichas verdes ganó
-o no
-- board: recibe un tablero (lista de listas de objetos
-  cCheckersBox)
-Salida:
-- true si el jugador ganó y false si no
-|#
-(define (won-red board)
-  (won-red-aux board 0 #t)
-  )
-
-#|
-won-red-aux es usado por won-red para recorrer las
-filas de arriba del tablero para ver si son rojas
-- board: recibe un tablero (lista de listas de objetos
-  cCheckersBox)
-- pos: la fila que se está revisando
-- result: el resultado que se lleva hasta el momento
-Salida:
-- true si todas las fichas que se han encontrado son
-  rojas y false si se encuentra alguna que no lo es
-|#
-(define (won-red-aux board pos result)
-  (if result
-      (if (> pos 3)
-          #t
-          (won-red-aux board (add1 pos) (won-red-aux2 board pos 0 (length (list-ref board pos)))))
-      #f))
-
-#|
-won-red-aux2 es usado por won-red-aux para
-recorrer las casillas de cada fila para ver si
-son rojas
-- board: recibe un tablero (lista de listas de objetos
-  cCheckersBox)
-- pos: la fila que se está revisando
-- max: el número de columnas de la fila
-Salida:
-- true si todas las fichas que se han encontrado son
-  rojas y false si se encuentra alguna que no lo es
-|#
-(define (won-red-aux2 board pos pos2 max)
-  (if (>= pos2 max)
-      #t
-      (if ( equal? (send (list-ref (list-ref board pos) pos2) get-color) "red")
-                      (won-red-aux2 board pos (add1 pos2) max)
-                      #f))
-  )
-
-#|
-count-green-final cuenta cuantas fichas verdes hay en
-la posición final, es decir, el triángulo de abajo, por
-cada una de estas se suma 10
-- board: recibe un tablero (lista de listas de objetos
-  cCheckersBox)
-Salida:
-- La suma de las fichas
-|#
-(define (count-green-final board)
-  (count-green-final-aux board (sub1 (length board)) 0)
-  )
-
-#|
-count-green-final-aux es usada por count-green-final
-para revisar las filas de abajo del tablero contando
-las fichas verdes que se encuentran
-- board: recibe un tablero (lista de listas de objetos
-  cCheckersBox)
-- pos: el número de fila actual
-- result: La suma de las fichas que se lleva hasta el
-  momento
-Salida:
-- La suma de las fichas
-|#
-(define (count-green-final-aux board pos result)
-      (if (< pos 13)
-          result
-          (count-green-final-aux board (sub1 pos) (count-green-final-aux2 board pos 0 (length (list-ref board pos)) result)))
-      )
-
-#|
-count-green-final-aux2 es usada por count-green-final-aux
-para revisar las casillas de abajo del tablero contando
-las fichas verdes que se encuentran
-- board: recibe un tablero (lista de listas de objetos
-  cCheckersBox)
-- pos: el número de fila actual
-- pos2: el número de columna actual
-- max: el número de columnas de la fila
-- result: La suma de las fichas que se lleva hasta el
-  momento
-Salida:
-- La suma de las fichas
-|#
-(define (count-green-final-aux2 board pos pos2 max result)
-  (if (>= pos2 max)
-      result
-      (if ( equal? (send (list-ref (list-ref board pos) pos2) get-color) "green")
-                      (count-green-final-aux2 board pos (add1 pos2) max (+ result 10))
-                      (count-green-final-aux2 board pos (add1 pos2) max result)))
-  )
-
-#|
-count-red-final cuenta cuantas fichas rojas hay en
-la posición final, es decir, el triángulo de arriba, por
-cada una de estas se suma 10
-- board: recibe un tablero (lista de listas de objetos
-  cCheckersBox)
-Salida:
-- La suma de las fichas
-|#
-(define (count-red-final board)
-  (count-red-final-aux board 0 0)
-  )
-
-#|
-count-red-final-aux es usada por count-red-final
-para revisar las filas de arriba del tablero contando
-las fichas rojas que se encuentran
-- board: recibe un tablero (lista de listas de objetos
-  cCheckersBox)
-- pos: el número de fila actual
-- result: La suma de las fichas que se lleva hasta el
-  momento
-Salida:
-- La suma de las fichas
-|#
-(define (count-red-final-aux board pos result)
-      (if (> pos 3)
-          result
-          (count-red-final-aux board (add1 pos) (count-red-final-aux2 board pos 0 (length (list-ref board pos)) result)))
-  )
-
-#|
-count-red-final-aux2 es usada por count-red-final-aux
-para revisar las casillas de arriba del tablero contando
-las fichas rojas que se encuentran
-- board: recibe un tablero (lista de listas de objetos
-  cCheckersBox)
-- pos: el número de fila actual
-- pos2: el número de columna actual
-- max: el número de columnas de la fila
-- result: La suma de las fichas que se lleva hasta el
-  momento
-Salida:
-- La suma de las fichas
-|#
-(define (count-red-final-aux2 board pos pos2 max result)
-  (if (>= pos2 max)
-      result
-      (if ( equal? (send (list-ref (list-ref board pos) pos2) get-color) "red")
-                      (count-red-final-aux2 board pos (add1 pos2) max (+ result 10))
-                      (count-red-final-aux2 board pos (add1 pos2) max result)))
-  )
+                      0))))
 
 #|
 alpha-beta-search devuelve el tablero que sería la
@@ -2340,7 +2002,7 @@ Salida:
 - Devuelve una lista de listas de objetos cCheckersBox
 |#
 (define (alpha-beta-search board color1 color2)
-  (cadr (max-move board -inf.0 +inf.0 color1 color2 6 20))
+  (cadr (max-move board -inf.0 +inf.0 color1 color2 2 13))
   )
 
 #|
@@ -2357,7 +2019,7 @@ Salida:
 - Devuelve una lista con un valor y una lista de listas de objetos cCheckersBox
 |#
 (define (max-move board alpha beta color1 color2 expandDeep expandWide)
-  (if (or (<= expandDeep 0) (final-position board))
+  (if (<= expandDeep 0)
     (list (eval board) board)
     (max-move-aux (check-possible-moves board color1 expandWide) alpha beta (list -inf.0 null) color1 color2 expandDeep expandWide)
     )
@@ -2406,7 +2068,7 @@ Salida:
 - Devuelve una lista con un valor y una lista de listas de objetos cCheckersBox
 |#
 (define (min-move board alpha beta color1 color2 expandDeep expandWide)
-  (if (or (<= expandDeep 0) (final-position board))
+  (if (<= expandDeep 0)
     (list (eval board) board)
     (min-move-aux (check-possible-moves board color1 expandWide) alpha beta (list +inf.0 null) color1 color2 expandDeep expandWide)
     )

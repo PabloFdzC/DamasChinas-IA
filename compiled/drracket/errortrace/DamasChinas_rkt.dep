@@ -1,0 +1,1 @@
+("8.4" ta6nt ("7a16ad11ec9a86a746da13154b447c21e8e7d8c6" . "cefeddc1aa32456c606738727897266276837ac4") #"C:\\Users\\Roberto\\Documents\\DamasChinas-IA\\board.rkt" (collects #"errortrace" #"errortrace-key.rkt") (collects #"racket" #"gui" #"base.rkt") (collects #"racket" #"main.rkt") (collects #"racket" #"runtime-config.rkt"))
