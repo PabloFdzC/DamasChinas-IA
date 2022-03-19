@@ -2440,4 +2440,4 @@ Salida:
       )
   )
 
-(provide alpha-beta-search)
+(provide alpha-beta-search won-green won-red)

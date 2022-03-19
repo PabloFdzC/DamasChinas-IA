@@ -17,6 +17,8 @@
                 [previousColor null]
                 [game null]
                 [playWithAI #t]
+                [redWon #f]
+                [greenWon #f]
                 )
     ; Los siguientes son getters y setters
     (define/public (get-turn) turn)
@@ -27,6 +29,12 @@
     (define/public (get-current-game) game)
     (define/public (set-turn t)
       (set! turn t)
+      )
+    (define/public (set-redWon rw)
+      (set! redWon rw)
+      )
+    (define/public (set-greenWon gw)
+      (set! greenWon gw)
       )
     (define/public (set-current-game g)
       (set! game g)
@@ -146,52 +154,61 @@
     |#
     (define/public (select-box posX posY mc pColor)
       (cond 
-        [(and (>= posX 490) (>= posY 10) (<= posX 600) (<= posY 40)) ((lambda () (send this new-game) (send this paint-board (send this get-current-game) mc)))]
+        [(and (>= posX 490) (>= posY 10) (<= posX 600) (<= posY 40)) ((lambda () (send this new-game) (send this paint-board (send this get-current-game) mc) (send this paint-message mc "Turno de:" "Jugador" "red") (set! redWon #f) (set! greenWon #f)))]
         [(and (>= posX 490) (>= posY 300) (<= posX 600) (<= posY 345)) (send this move-done mc)]
-        [else (let ([b (find-box posX posY)])
-          (if (void? b) (void) (display (string-append "\nb: (" (number->string (send b get-posX)) ", " (number->string (send b get-posY)) ") " (send b get-color) "\n")))
-          (if (null? lastMoved) (void) (display (string-append "lm: (" (number->string (send lastMoved get-posX)) ", " (number->string (send lastMoved get-posY)) ") " (send lastMoved get-color) "\n")))
-          (if (void? selectedBox) (void) (display (string-append "sb: (" (number->string (send selectedBox get-posX)) ", " (number->string (send selectedBox get-posY)) ") " (send selectedBox get-color) "\n")))
-          (if (void? selectedBox)
-              (void)
-              ((lambda (selectedBox previousColor)
-                (send selectedBox set-color previousColor)
-                (send selectedBox paint-circle mc)
-                ) selectedBox previousColor)
-              )
-          (if (void? b)
-              (void)
-              (if (equal? pColor (send b get-color))
-                  ((lambda (b g)
-                    (send g set-previousColor (send b get-color))
-                    (send b set-color "yellow")
-                    (send b paint-circle mc)
-                    (send g set-selectedBox b)
-                    ) b this)
-                  (if (and (equal? (send b get-color) "white") (send this is-move-possible selectedBox b))
-                      (let ([changeColors (lambda (b g)
-                        (send b set-color (send g get-previousColor))
-                        (send b paint-circle mc)
-                        (send (send g get-selectedBox) set-color "white")
-                        (send (send g get-selectedBox) paint-circle mc)
-                        (send g set-preLastMoved (send g get-selectedBox))
-                        (send g set-previousColor null)
-                        (send g set-selectedBox (void))
-                        (send g set-lastMoved b)
-                        )])
-                          (if (null? (send this get-lastMoved))
-                            (changeColors b this)
-                            (if (and
-                                  (equal? (send lastMoved get-posX) (send selectedBox get-posX))
-                                  (equal? (send lastMoved get-posY) (send selectedBox get-posY))
-                                  (or (send this is-move-jump selectedBox b) (and (equal? (send preLastMoved get-posX) (send b get-posX)) (equal? (send preLastMoved get-posY) (send b get-posY)))))
-                                    (changeColors b this)
-                                    (void)
-                                    )))
+        [else (if (or redWon greenWon)
+          (void)
+          (let ([b (find-box posX posY)])
+            (if (void? b) (void) (display (string-append "\n1)\nb: (" (number->string (send b get-posX)) ", " (number->string (send b get-posY)) ") " (send b get-color) "\n")))
+            (if (null? lastMoved) (void) (display (string-append "lm: (" (number->string (send lastMoved get-posX)) ", " (number->string (send lastMoved get-posY)) ") " (send lastMoved get-color) "\n")))
+            (if (void? selectedBox) (void) (display (string-append "sb: (" (number->string (send selectedBox get-posX)) ", " (number->string (send selectedBox get-posY)) ") " (send selectedBox get-color) "\n")))
+            (if (void? selectedBox)
+                (void)
+                ((lambda ()
+                  (send selectedBox set-color previousColor)
+                  (send selectedBox paint-circle mc)
+                  ))
+                )
+            (if (void? b)
+                (void)
+                (if (equal? pColor (send b get-color))
+                    ((lambda ()
+                      (send this set-previousColor (send b get-color))
+                      (send b set-color "yellow")
+                      (send b paint-circle mc)
+                      (send this set-selectedBox b)
+                      ))
+                    (if (void? selectedBox)
+                      (void)
+                      (if (and (equal? (send b get-color) "white") (send this is-move-possible selectedBox b))
+                        (let ([changeColors (lambda (b g)
+                          (send b set-color (send g get-previousColor))
+                          (send b paint-circle mc)
+                          (send (send g get-selectedBox) set-color "white")
+                          (send (send g get-selectedBox) paint-circle mc)
+                          (send g set-preLastMoved (send g get-selectedBox))
+                          (if (void? b) (void) (display (string-append "\n2)\nb: (" (number->string (send b get-posX)) ", " (number->string (send b get-posY)) ") " (send b get-color) "\n")))
+                          (if (null? lastMoved) (void) (display (string-append "lm: (" (number->string (send lastMoved get-posX)) ", " (number->string (send lastMoved get-posY)) ") " (send lastMoved get-color) "\n")))
+                          (if (void? selectedBox) (void) (display (string-append "sb: (" (number->string (send selectedBox get-posX)) ", " (number->string (send selectedBox get-posY)) ") " (send selectedBox get-color) "\n")))
+                          (send g set-previousColor null)
+                          (send g set-selectedBox (void))
+                          (send g set-lastMoved b)
+                          )])
+                            (if (null? (send this get-lastMoved))
+                              (changeColors b this)
+                              (if (and
+                                    (equal? (send lastMoved get-posX) (send selectedBox get-posX))
+                                    (equal? (send lastMoved get-posY) (send selectedBox get-posY))
+                                    (or (send this is-move-jump selectedBox b) (and (equal? (send preLastMoved get-posX) (send b get-posX)) (equal? (send preLastMoved get-posY) (send b get-posY)))))
+                                      (changeColors b this)
+                                      (void)
+                                      )))
                         (void)
-                  )
-                  )
-              )
+                        )
+                      )
+                    )
+                )
+            )
           )])
       )
     #|
@@ -277,6 +294,7 @@
             (void)
             )
         )
+      
       (if (not (empty? board))
         ((lambda (board mc g)
           (paint-board-aux (first board) mc)
@@ -412,20 +430,45 @@
         (void)
         ((lambda ()
           (send this reset-variables)
-          (if playWithAI
-            (send this make-ai-move mc)
-            (send this set-turn (not (send this get-turn)))
-            )))
+          (if (won-red game)
+            ((lambda () (send this paint-message mc "Ganador:" "Jugador" "yellow") (send this set-redWon #t)))
+            (if playWithAI
+              ((lambda ()
+                (send this paint-message mc "Turno de:" "IA" "green")
+                (send this make-ai-move mc)
+                (if (won-green game)
+                  ((lambda () (send this paint-message mc "Ganador:" "IA" "yellow") (send this set-greenWon #t)))
+                  (send this paint-message mc "Turno de:" "Jugador" "red"))
+                ))
+              (send this set-turn (not (send this get-turn)))
+              )
+            )
+          ))
         )
       )
     
+    #|
+    reset-variables devuelve los atributos selectedBox
+    lastMoved y previousColor a su valor inicial
+    Parámetros:
+    - Ninguna
+    Salida:
+    - Ninguna
+    |#
     (define/public (reset-variables)
       (send this set-selectedBox (void))
       (send this set-lastMoved null)
       (send this set-previousColor null)
       )
-     
-     (define/public (paint-buttons mc)
+    #|
+    paint-buttons dibuja los botones de nuevo juego
+    y confirmar movimiento
+    Parámetros:
+    - mc: es el canvas del juego
+    Salida:
+    - Ninguna
+    |#
+    (define/public (paint-buttons mc)
       (let ([dc (send mc get-dc)])
         (send dc set-text-foreground "black")
         (send dc set-brush "white" 'solid)
@@ -438,7 +481,32 @@
         (send dc draw-text "Movimiento" 505 320)
         )
       )
-      
+    #|
+    paint-message pinta en el canvas en una caja el turno
+    del jugador actual
+    Parámetros:
+    - mc: es el canvas del juego
+    - player: string con el nombre del jugador actual
+    - color: color que se va a pintar la caja
+    Salida:
+    - Ninguna
+    |#
+    (define/public (paint-message mc title player color)
+      (let ([dc (send mc get-dc)])
+        (send dc set-text-foreground "black")
+        (send dc set-brush color 'solid)
+        (send dc draw-rounded-rectangle 490 50 110 45)
+        (send dc draw-text title 510 55)
+        (send dc draw-text player 515 70)
+        )
+      )
+    #|
+    make-ai-move hace el movimiento de la IA
+    Parámetros:
+    - mc: es el canvas del juego
+    Salida:
+    - Ninguna
+    |#  
     (define/public (make-ai-move mc)
       ((lambda (newBoard obj)
         (send this paint-board-only-changes (send obj get-current-game) newBoard mc)
@@ -452,8 +520,6 @@
       ;(send mc on-paint)
       )
     )
-
-  
 
   )
 

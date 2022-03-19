@@ -54,6 +54,7 @@ mc es la instanciación del canvas
         (send dc clear)
         (send game paint-board (send game get-current-game) mc) ; Se pinta el tablero inicial
         (send game paint-buttons mc)
+        (send game paint-message mc "Turno de:" "Jugador" "red")
         ;(paint-board (list-ref (check-possible-moves (send game get-current-game) "red") 0) mc)
         )]))
 
