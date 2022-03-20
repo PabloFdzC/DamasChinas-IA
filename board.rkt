@@ -20,6 +20,7 @@
                 [playWithAI #t]
                 [redWon #f]
                 [greenWon #f]
+                [moveN 0]
                 )
     ; Los siguientes son getters y setters
     (define/public (get-turn) turn)
@@ -66,6 +67,7 @@
     |#
     (define/public (new-game)
       (send this reset-variables)
+      (set! moveN 0)
       (set! game (send this create-board))
       )
     
@@ -88,7 +90,7 @@
           )
         (and ;revisa que se pueda mover a un espacio que esté inmediatamente al lado horizontal
           (equal? (send box1 get-posY) (send box2 get-posY))
-          (<= (abs (- (send box1 get-posY) (send box2 get-posY))) spaceY)
+          (<= (abs (- (send box1 get-posX) (send box2 get-posX))) spaceX)
           )
         )
       )
@@ -135,7 +137,13 @@
           (if (send this is-move-jump box1 box2)
                 (if (equal? ;revisa si el que se intenta saltar es un espacio en blanco
                         "white"
-                        (send (send this find-box (if (< (- (send box1 get-posX) (send box2 get-posX)) 0) (+ (send box1 get-posX) (ceiling (/ spaceX 2))) (- (send box1 get-posX) (ceiling (/ spaceX 2)))) (if (< (- (send box1 get-posY) (send box2 get-posY)) 0) (+ (send box1 get-posY) spaceY) (- (send box1 get-posY) spaceY))) get-color))
+                        (send (send this find-box (if (< (- (send box1 get-posX) (send box2 get-posX)) 0)
+                                                    (+ (send box1 get-posX) (if (equal? (send box1 get-posY) (send box2 get-posY)) spaceX (ceiling (/ spaceX 2))))
+                                                    (- (send box1 get-posX) (if (equal? (send box1 get-posY) (send box2 get-posY)) spaceX (ceiling (/ spaceX 2)))))
+                                                  (if (< (- (send box1 get-posY) (send box2 get-posY)) 0)
+                                                    (+ (send box1 get-posY) spaceY)
+                                                    (if (equal? (send box1 get-posY) (send box2 get-posY)) (send box1 get-posY) (- (send box1 get-posY) spaceY))))
+                              get-color))
                     #f
                     #t
                     )
@@ -159,14 +167,25 @@
     |#
     (define/public (select-box posX posY mc pColor)
       (cond 
-        [(and (>= posX 490) (>= posY 10) (<= posX 600) (<= posY 40)) ((lambda () (send this new-game) (send this paint-board (send this get-current-game) mc) (send this paint-message mc "Turno de:" "Jugador" "red") (set! redWon #f) (set! greenWon #f)))]
-        [(and (>= posX 490) (>= posY 300) (<= posX 600) (<= posY 345)) (send this move-done mc)]
+        [(and (>= posX 490) (>= posY 10) (<= posX 600) (<= posY 40))
+          ((lambda ()
+            (send this new-game)
+            (send this paint-board (send this get-current-game) mc)
+            (send this paint-message mc "Turno de:" "Jugador" "red")
+            (set! redWon #f)
+            (set! greenWon #f)
+            (send this reset-variables)))]
+        [(and (>= posX 490) (>= posY 300) (<= posX 600) (<= posY 345))
+          (if (void? selectedBox)
+            (send this move-done mc)
+            ((lambda ()
+              (send selectedBox set-color (send this get-previousColor))
+              (send selectedBox paint-circle mc)
+              (send this move-done mc)
+              )))]
         [else (if (or redWon greenWon)
           (void)
           (let ([b (find-box posX posY)])
-            ;(if (void? b) (void) (display (string-append "\n1)\nb: (" (number->string (send b get-posX)) ", " (number->string (send b get-posY)) ") " (send b get-color) "\n")))
-            ;(if (null? lastMoved) (void) (display (string-append "lm: (" (number->string (send lastMoved get-posX)) ", " (number->string (send lastMoved get-posY)) ") " (send lastMoved get-color) "\n")))
-            ;(if (void? selectedBox) (void) (display (string-append "sb: (" (number->string (send selectedBox get-posX)) ", " (number->string (send selectedBox get-posY)) ") " (send selectedBox get-color) "\n")))
             (if (void? selectedBox)
                 (void)
                 ((lambda ()
@@ -186,36 +205,39 @@
                     (if (void? selectedBox)
                       (void)
                       (if (and (equal? (send b get-color) "white") (send this is-move-possible selectedBox b))
-                        (let ([changeColors (lambda (b g)
-                          (send b set-color (send g get-previousColor))
-                          (send b paint-circle mc)
-                          (send (send g get-selectedBox) set-color "white")
-                          (send (send g get-selectedBox) paint-circle mc)
-                          (send g set-preLastMoved (send g get-selectedBox))
-                          (send g set-previousColor null)
-                          (send g set-lastMoved b)
-                          (if (void? (send g get-firstSelected))
-                            (send g set-firstSelected (send g get-selectedBox))
-                            (if (and (equal? (send (send g get-firstSelected) get-posX) (send b get-posX)) (equal? (send (send g get-firstSelected) get-posY) (send b get-posY)))
-                              (send g reset-variables)
-                              (void)))
-                          (send g set-selectedBox (void))
-                          )])
+                        (let 
+                            ([changeColors (lambda (b g)
+                              (send b set-color (send g get-previousColor))
+                              (send b paint-circle mc)
+                              (send (send g get-selectedBox) set-color "white")
+                              (send (send g get-selectedBox) paint-circle mc)
+                              (send g set-preLastMoved (send g get-selectedBox))
+                              (send g set-previousColor null)
+                              (send g set-lastMoved b)
+                              (if (void? (send g get-firstSelected))
+                                (send g set-firstSelected (send g get-selectedBox))
+                                (if (and (equal? (send (send g get-firstSelected) get-posX) (send b get-posX)) (equal? (send (send g get-firstSelected) get-posY) (send b get-posY)))
+                                  (send g reset-variables)
+                                  (void)))
+                              (send g set-selectedBox (void))
+                              )])
                             (if (null? (send this get-lastMoved))
                               (changeColors b this)
-                              (if (and
+                              ((lambda () (if (and
                                     (equal? (send lastMoved get-posX) (send selectedBox get-posX)) ;verifica que sea la misma ficha movida antes
                                     (equal? (send lastMoved get-posY) (send selectedBox get-posY)) ;verifica que sea la misma ficha movida antes
                                     (or (and 
-                                          (not (send this is-move-single preLastMoved lastMoved))
+                                          (not (send this is-move-single preLastMoved lastMoved)) ;movimiento anterior no sea de paso único
                                           (send this is-move-jump selectedBox b);movimiento actual es salto
                                           )
                                         (and ;vuelve al movimiento pasado
                                           (equal? (send preLastMoved get-posX) (send b get-posX))
                                           (equal? (send preLastMoved get-posY) (send b get-posY)))))
-                                      (changeColors b this)
-                                      (void)
-                                      )))
+                                (changeColors b this)
+                                (void)
+                                )
+                                ))
+                              ))
                         (void)
                         )
                       )
@@ -521,13 +543,12 @@
     - Ninguna
     |#  
     (define/public (make-ai-move mc)
-      (send this paint-board-only-changes (send this get-current-game) (alpha-beta-search (send this get-current-game) "green" "red") mc)
-      ;(send mc suspend-flush)
-      ;(send this paint-board-only-changes (send this get-current-game) mc)
-      ;(send this paint-buttons mc)
-      ;(send (send mc get-dc) clear)
-      ;(send mc resume-flush)
-      ;(send mc on-paint)
+      (set! moveN (add1 moveN))
+      ((lambda (lst)
+        (let ([totTime (/ (third lst) 1000.0)])
+          (display (string-append (number->string moveN) ") tiempo:\t" (number->string totTime) "s\t" (number->string (third lst)) "ms\n")))
+        (send this paint-board-only-changes (send this get-current-game) (caar lst) mc))
+      (call-with-values (lambda () (time-apply alpha-beta-search (list (send this get-current-game) "green" "red"))) list))
       )
     )
 
