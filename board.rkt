@@ -12,6 +12,7 @@
                 [startX 150]
                 [startY 10]
                 [selectedBox (void)]
+                [firstSelected (void)]
                 [lastMoved null]
                 [preLastMoved null]
                 [previousColor null]
@@ -23,6 +24,7 @@
     ; Los siguientes son getters y setters
     (define/public (get-turn) turn)
     (define/public (get-selectedBox) selectedBox)
+    (define/public (get-firstSelected) firstSelected)
     (define/public (get-previousColor) previousColor)
     (define/public (get-lastMoved) lastMoved)
     (define/public (get-preLastMoved) preLastMoved)
@@ -41,6 +43,9 @@
       )
     (define/public (set-selectedBox b)
       (set! selectedBox b)
+      )
+    (define/public (set-firstSelected b)
+      (set! firstSelected b)
       )
     (define/public (set-previousColor c)
       (set! previousColor c)
@@ -159,9 +164,9 @@
         [else (if (or redWon greenWon)
           (void)
           (let ([b (find-box posX posY)])
-            (if (void? b) (void) (display (string-append "\n1)\nb: (" (number->string (send b get-posX)) ", " (number->string (send b get-posY)) ") " (send b get-color) "\n")))
-            (if (null? lastMoved) (void) (display (string-append "lm: (" (number->string (send lastMoved get-posX)) ", " (number->string (send lastMoved get-posY)) ") " (send lastMoved get-color) "\n")))
-            (if (void? selectedBox) (void) (display (string-append "sb: (" (number->string (send selectedBox get-posX)) ", " (number->string (send selectedBox get-posY)) ") " (send selectedBox get-color) "\n")))
+            ;(if (void? b) (void) (display (string-append "\n1)\nb: (" (number->string (send b get-posX)) ", " (number->string (send b get-posY)) ") " (send b get-color) "\n")))
+            ;(if (null? lastMoved) (void) (display (string-append "lm: (" (number->string (send lastMoved get-posX)) ", " (number->string (send lastMoved get-posY)) ") " (send lastMoved get-color) "\n")))
+            ;(if (void? selectedBox) (void) (display (string-append "sb: (" (number->string (send selectedBox get-posX)) ", " (number->string (send selectedBox get-posY)) ") " (send selectedBox get-color) "\n")))
             (if (void? selectedBox)
                 (void)
                 ((lambda ()
@@ -187,19 +192,27 @@
                           (send (send g get-selectedBox) set-color "white")
                           (send (send g get-selectedBox) paint-circle mc)
                           (send g set-preLastMoved (send g get-selectedBox))
-                          (if (void? b) (void) (display (string-append "\n2)\nb: (" (number->string (send b get-posX)) ", " (number->string (send b get-posY)) ") " (send b get-color) "\n")))
-                          (if (null? lastMoved) (void) (display (string-append "lm: (" (number->string (send lastMoved get-posX)) ", " (number->string (send lastMoved get-posY)) ") " (send lastMoved get-color) "\n")))
-                          (if (void? selectedBox) (void) (display (string-append "sb: (" (number->string (send selectedBox get-posX)) ", " (number->string (send selectedBox get-posY)) ") " (send selectedBox get-color) "\n")))
                           (send g set-previousColor null)
-                          (send g set-selectedBox (void))
                           (send g set-lastMoved b)
+                          (if (void? (send g get-firstSelected))
+                            (send g set-firstSelected (send g get-selectedBox))
+                            (if (and (equal? (send (send g get-firstSelected) get-posX) (send b get-posX)) (equal? (send (send g get-firstSelected) get-posY) (send b get-posY)))
+                              (send g reset-variables)
+                              (void)))
+                          (send g set-selectedBox (void))
                           )])
                             (if (null? (send this get-lastMoved))
                               (changeColors b this)
                               (if (and
-                                    (equal? (send lastMoved get-posX) (send selectedBox get-posX))
-                                    (equal? (send lastMoved get-posY) (send selectedBox get-posY))
-                                    (or (send this is-move-jump selectedBox b) (and (equal? (send preLastMoved get-posX) (send b get-posX)) (equal? (send preLastMoved get-posY) (send b get-posY)))))
+                                    (equal? (send lastMoved get-posX) (send selectedBox get-posX)) ;verifica que sea la misma ficha movida antes
+                                    (equal? (send lastMoved get-posY) (send selectedBox get-posY)) ;verifica que sea la misma ficha movida antes
+                                    (or (and 
+                                          (not (send this is-move-single preLastMoved lastMoved))
+                                          (send this is-move-jump selectedBox b);movimiento actual es salto
+                                          )
+                                        (and ;vuelve al movimiento pasado
+                                          (equal? (send preLastMoved get-posX) (send b get-posX))
+                                          (equal? (send preLastMoved get-posY) (send b get-posY)))))
                                       (changeColors b this)
                                       (void)
                                       )))
@@ -321,7 +334,7 @@
             ((lambda (board mc)
               (if (equal? (send (first board) get-color) (send (first boardChanged) get-color))
                 (void)
-                (send (first boardChanged) draw-circle mc))
+                ((lambda () (send (first board) set-color (send (first boardChanged) get-color)) (send (first board) paint-circle mc))))
               (paint-board-only-changes-aux (rest board) (rest boardChanged) mc))
             board mc)
             (void)
@@ -445,8 +458,7 @@
             )
           ))
         )
-      )
-    
+      )    
     #|
     reset-variables devuelve los atributos selectedBox
     lastMoved y previousColor a su valor inicial
@@ -459,6 +471,7 @@
       (send this set-selectedBox (void))
       (send this set-lastMoved null)
       (send this set-previousColor null)
+      (send this set-firstSelected (void))
       )
     #|
     paint-buttons dibuja los botones de nuevo juego
@@ -508,10 +521,7 @@
     - Ninguna
     |#  
     (define/public (make-ai-move mc)
-      ((lambda (newBoard obj)
-        (send this paint-board-only-changes (send obj get-current-game) newBoard mc)
-        (send this set-current-game newBoard)
-        ) (alpha-beta-search (send this get-current-game) "green" "red") this)
+      (send this paint-board-only-changes (send this get-current-game) (alpha-beta-search (send this get-current-game) "green" "red") mc)
       ;(send mc suspend-flush)
       ;(send this paint-board-only-changes (send this get-current-game) mc)
       ;(send this paint-buttons mc)
