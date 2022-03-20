@@ -143,15 +143,15 @@ Salida:
                    (> pos 12))
                       '()
                       (if (empty? (append (check-move-down-left board pos pos2 color) (check-move-down-right board pos pos2 color)))
-                          (append (if (<= pos 0)
-                                      '()
-                                      (append (check-move-up-right board pos pos2 color) (check-move-up-left board pos pos2 color)))
-                                  (if (<= pos2 0)
+                          (append (if (<= pos2 0)
                                       '()
                                       (check-move-left board pos pos2 color))
                                   (if (>= pos2 (- (length (list-ref board pos)) 1))
                                       '()
                                       (check-move-right board pos pos2 color))
+                                  (if (<= pos 0)
+                                      '()
+                                      (append (check-move-up-right board pos pos2 color) (check-move-up-left board pos pos2 color)))
                                   )
                           '()
                           )
@@ -160,10 +160,24 @@ Salida:
       (append moves
               (if (<= pos 0)
                   '()
-                  (check-move-up-left board pos pos2 color))
-              (if (<= pos 0)
-                  '()
-                  (check-move-up-right board pos pos2 color))
+                  (append (check-move-up-right board pos pos2 color) (check-move-up-left board pos pos2 color)))
+              (if (< pos 4)
+                      '()
+                      (if (empty? (append (check-move-up-left board pos pos2 color) (check-move-up-right board pos pos2 color)))
+                          (append 
+                                  (if (<= pos2 0)
+                                      '()
+                                      (check-move-left board pos pos2 color))
+                                  (if (>= pos2 (- (length (list-ref board pos)) 1))
+                                      '()
+                                      (check-move-right board pos pos2 color))
+                                  (if (>= pos 16)
+                                      '()
+                                      (append (check-move-down-left board pos pos2 color) (check-move-down-right board pos pos2 color)))
+                                  )
+                          '()
+                          )
+                      )
    )))
 
 #|
@@ -2441,3 +2455,6 @@ Salida:
   )
 
 (provide alpha-beta-search won-green won-red)
+
+
+
