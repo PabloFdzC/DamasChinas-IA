@@ -1,6 +1,7 @@
 #lang racket
 (require "cCheckersBox.rkt")
 
+
 #|
 check-possible-moves se encarga de revisar una posición del tablero
 y devolver todos los posibles moviemientos que pueden hacer las
@@ -2357,6 +2358,7 @@ Salida:
   (cadr (max-move board -inf.0 +inf.0 color1 color2 6 20))
   )
 
+
 #|
 max-move max del minimax
 Parámetros:
@@ -2377,6 +2379,7 @@ Salida:
     )
   )
 
+
 #|
 max-move-aux ayuda a iterar la lista de movimientos
 Parámetros:
@@ -2394,7 +2397,7 @@ Salida:
   (if (empty? moves)
     v
     ((lambda (x)
-      (if (> (car x) (car v))
+      (if (>= (car x) (car v))
         (set! v (list (car x) (car moves)))
         (void))
       (if (or (>= (car v) beta) (<= expandWide 0))
@@ -2405,6 +2408,7 @@ Salida:
       ))
       
   )
+
 
 #|
 min-move min del minimax
@@ -2421,10 +2425,11 @@ Salida:
 |#
 (define (min-move board alpha beta color1 color2 expandDeep expandWide)
   (if (or (<= expandDeep 0) (final-position board))
-    (list (eval board) board)
+    (list (* (eval board) -1) board)
     (min-move-aux (check-possible-moves board color1 expandWide) alpha beta (list +inf.0 null) color1 color2 expandDeep expandWide)
     )
   )
+
 
 #|
 min-move-aux ayuda a iterar la lista de movimientos
@@ -2443,7 +2448,7 @@ Salida:
   (if (empty? moves)
     v
     ((lambda (x)
-      (if (< (car x) (car v))
+      (if (<= (car x) (car v))
         (set! v (list (car x) (car moves)))
         (void))
       (if (or (<= (car v) alpha) (<= expandWide 0))
@@ -2454,7 +2459,5 @@ Salida:
       )
   )
 
+
 (provide alpha-beta-search won-green won-red)
-
-
-

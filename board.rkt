@@ -546,10 +546,12 @@
       (set! moveN (add1 moveN))
       ((lambda (lst)
         (let ([totTime (/ (third lst) 1000.0)])
-          (display (string-append (number->string moveN) ") tiempo:\t" (number->string totTime) "s\t" (number->string (third lst)) "ms\n")))
+          (printf (string-append (number->string moveN) ")\t" (number->string totTime) "\t" (number->string (third lst)) "\n")))
         (send this paint-board-only-changes (send this get-current-game) (caar lst) mc))
       (call-with-values (lambda () (time-apply alpha-beta-search (list (send this get-current-game) "green" "red"))) list))
       )
+
+    
     )
 
   )

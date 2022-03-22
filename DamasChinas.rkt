@@ -1,6 +1,7 @@
 #lang racket
 (require racket/gui/base)
 (require "board.rkt")
+(require "cCheckersBox.rkt")
 
 
 #|
